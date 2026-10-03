@@ -14,16 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          check_in_at: string
+          check_in_distance_m: number | null
+          check_in_lat: number | null
+          check_in_lng: number | null
+          check_out_at: string | null
+          check_out_distance_m: number | null
+          check_out_lat: number | null
+          check_out_lng: number | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          check_in_at?: string
+          check_in_distance_m?: number | null
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_out_at?: string | null
+          check_out_distance_m?: number | null
+          check_out_lat?: number | null
+          check_out_lng?: number | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          check_in_at?: string
+          check_in_distance_m?: number | null
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_out_at?: string | null
+          check_out_distance_m?: number | null
+          check_out_lat?: number | null
+          check_out_lng?: number | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      office_settings: {
+        Row: {
+          id: number
+          latitude: number
+          longitude: number
+          name: string
+          radius_m: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          latitude: number
+          longitude: number
+          name?: string
+          radius_m?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          latitude?: number
+          longitude?: number
+          name?: string
+          radius_m?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string | null
+          employee_code: string | null
+          full_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          employee_code?: string | null
+          full_name?: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          employee_code?: string | null
+          full_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      clock_action: { Args: { _lat: number; _lng: number }; Returns: Json }
+      distance_m: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +271,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "employee"],
+    },
   },
 } as const
