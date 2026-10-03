@@ -278,7 +278,7 @@ function Office() {
     const { error } = await supabase.from("office_settings").update({
       name: f.name, latitude: Number(f.latitude), longitude: Number(f.longitude), radius_m: Number(f.radius_m), updated_at: new Date().toISOString(),
     }).eq("id", 1);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Office location saved");
     qc.invalidateQueries({ queryKey: ["office"] });
   }
