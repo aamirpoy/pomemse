@@ -17,9 +17,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — Punchline" },
+      { title: "Admin — PME" },
       { name: "description", content: "Manage employees, office location and timesheets." },
-      { property: "og:title", content: "Admin — Punchline" },
+      { property: "og:title", content: "Admin — PME" },
       { property: "og:description", content: "Manage employees, office location and timesheets." },
     ],
   }),
