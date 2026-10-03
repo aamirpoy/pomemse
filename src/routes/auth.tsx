@@ -7,13 +7,14 @@ import { bootstrapAdmin, getSetupStatus } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import logoAsset from "@/assets/pme-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Punchline" },
+      { title: "Sign in — PME" },
       { name: "description", content: "Sign in to check in, check out and view your timesheet." },
-      { property: "og:title", content: "Sign in — Punchline" },
+      { property: "og:title", content: "Sign in — PME" },
       { property: "og:description", content: "Sign in to check in, check out and view your timesheet." },
     ],
   }),
@@ -58,8 +59,8 @@ function AuthPage() {
   return (
     <div className="grid min-h-screen md:grid-cols-2">
       <div className="hidden bg-hero p-10 text-primary-foreground md:flex md:flex-col md:justify-between">
-        <Link to="/" className="font-display text-2xl">Punchline</Link>
-        <p className="font-display text-4xl leading-tight">
+        <Link to="/"><img src={logoAsset.url} alt="PME — Pioneers of the Middle East" className="h-12 w-auto rounded bg-primary-foreground p-1.5" /></Link>
+        <p className="font-display text-4xl font-extrabold leading-tight">
           Your day starts the moment you arrive.
         </p>
       </div>

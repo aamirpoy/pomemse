@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import logoAsset from "@/assets/pme-logo.png.asset.json";
 
 export function useMe() {
   return useQuery({
@@ -42,7 +43,9 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-10 border-b bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-        <Link to="/dashboard" className="font-display text-xl">Punchline</Link>
+        <Link to="/dashboard" className="flex items-center gap-2">
+          <img src={logoAsset.url} alt="PME — Pioneers of the Middle East" className="h-8 w-auto" />
+        </Link>
         <nav className="flex gap-1">
           <Link to="/dashboard" className={linkCls} activeProps={active}>My time</Link>
           {me?.isAdmin && (
