@@ -273,7 +273,7 @@ function Office() {
     if (office.data) setF({ name: office.data.name, latitude: String(office.data.latitude), longitude: String(office.data.longitude), radius_m: String(office.data.radius_m) });
   }, [office.data]);
 
-  async function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     const { error } = await supabase.from("office_settings").update({
       name: f.name, latitude: Number(f.latitude), longitude: Number(f.longitude), radius_m: Number(f.radius_m), updated_at: new Date().toISOString(),
