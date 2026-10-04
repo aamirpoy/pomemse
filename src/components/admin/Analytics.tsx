@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtDuration, workedMs, type AttendanceRow } from "@/lib/time";
+import { fmtDuration, type AttendanceRow } from "@/lib/time";
 import { summarize } from "@/lib/analytics";
 
 type P = { id: string; full_name: string };
@@ -18,7 +18,6 @@ export function Analytics({ profiles }: { profiles: P[] }) {
   });
   const data = rows.data ?? [];
   const s = summarize(data, days);
-  const name = (id: string) => profiles.find((p) => p.id === id)?.full_name ?? "—";
   const perEmp = profiles.map((p) => {
     const e = s.perUser.get(p.id);
     return { name: p.full_name, hours: +((e?.ms ?? 0) / 3600000).toFixed(1), days: e?.days ?? 0, avgIn: e?.avgIn ?? "—", avgDay: e?.days ? fmtDuration(e.ms / e.days) : "—" };
@@ -75,7 +74,6 @@ export function Analytics({ profiles }: { profiles: P[] }) {
         </table>
       </div>
       {rows.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-      <span className="hidden">{name("")}{workedMs.length}</span>
     </div>
   );
 }
