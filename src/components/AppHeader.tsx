@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import logoAsset from "@/assets/pme-logo.png.asset.json";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 export function useMe() {
   return useQuery({
@@ -56,6 +57,7 @@ export function AppHeader() {
           <span className="hidden text-sm text-muted-foreground sm:inline">
             {me?.profile?.full_name || me?.email}
           </span>
+          <ChangePasswordDialog />
           <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
             <LogOut />
           </Button>

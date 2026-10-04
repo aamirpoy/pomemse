@@ -48,6 +48,7 @@ function AuthPage() {
         password: form.password,
       });
       if (error) throw error;
+      (await import("@/lib/session-expiry")).markLogin();
       navigate({ to: "/dashboard", replace: true });
     } catch (err: any) {
       toast.error(err.message ?? "Sign in failed");
