@@ -16,7 +16,7 @@ export function ChangePasswordDialog() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     if (next.length < 8) return toast.error("New password must be at least 8 characters");
     if (next !== confirm) return toast.error("Passwords don't match");
