@@ -18,12 +18,12 @@ export function ChangePasswordDialog() {
 
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    if (next.length < 8) return toast.error("New password must be at least 8 characters");
-    if (next !== confirm) return toast.error("Passwords don't match");
+    if (next.length < 8) { toast.error("New password must be at least 8 characters"); return; }
+    if (next !== confirm) { toast.error("Passwords don't match"); return; }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: next, current_password: current } as any);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Password changed");
     setOpen(false);
     setCurrent(""); setNext(""); setConfirm("");
