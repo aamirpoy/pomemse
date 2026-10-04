@@ -93,3 +93,19 @@ export const resetEmployeePassword = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const setAdminRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), admin: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    if (data.id === context.userId && !data.admin) throw new Error("You can't remove your own admin access");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.admin) {
+      await supabaseAdmin.from("user_roles").upsert({ user_id: data.id, role: "admin" }, { onConflict: "user_id,role" });
+    } else {
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", data.id).eq("role", "admin");
+      await supabaseAdmin.from("user_roles").upsert({ user_id: data.id, role: "employee" }, { onConflict: "user_id,role" });
+    }
+    return { ok: true };
+  });

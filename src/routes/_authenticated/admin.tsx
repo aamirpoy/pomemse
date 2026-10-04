@@ -3,7 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Trash2, KeyRound } from "lucide-react";
+import { Download, Trash2, KeyRound, Pencil, Plus } from "lucide-react";
+import { Analytics } from "@/components/admin/Analytics";
+import { EmployeeDialog, RecordDialog } from "@/components/admin/EditDialogs";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
 import { createEmployee, deleteEmployee, resetEmployeePassword } from "@/lib/admin.functions";
@@ -54,11 +56,13 @@ function AdminPage() {
         <Tabs defaultValue="today">
           <TabsList>
             <TabsTrigger value="today">Today</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="office">Office</TabsTrigger>
           </TabsList>
           <TabsContent value="today"><Today /></TabsContent>
+          <TabsContent value="progress"><ProgressTab /></TabsContent>
           <TabsContent value="timesheets"><Timesheets /></TabsContent>
           <TabsContent value="employees"><Employees selfId={me.id} /></TabsContent>
           <TabsContent value="office"><Office /></TabsContent>
@@ -69,6 +73,18 @@ function AdminPage() {
 }
 
 const card = "mt-4 rounded-xl border bg-card shadow-soft";
+
+function ProgressTab() {
+  const profiles = useProfiles();
+  return <Analytics profiles={profiles.data ?? []} />;
+}
+
+function useAdminIds() {
+  return useQuery({
+    queryKey: ["admin-ids"],
+    queryFn: async () => new Set(((await supabase.from("user_roles").select("user_id").eq("role", "admin")).data ?? []).map((r) => r.user_id)),
+  });
+}
 
 function Today() {
   const profiles = useProfiles();
@@ -161,7 +177,8 @@ function Timesheets() {
             {(profiles.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
           </select>
         </div>
-        <Button variant="outline" onClick={exportCsv} className="ml-auto"><Download /> Export CSV</Button>
+        <RecordDialog profiles={profiles.data ?? []} trigger={<Button className="ml-auto"><Plus /> Add record</Button>} />
+        <Button variant="outline" onClick={exportCsv}><Download /> Export CSV</Button>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[...totals.entries()].map(([id, ms]) => (
@@ -174,7 +191,7 @@ function Timesheets() {
       <div className={card}>
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
-            <tr className="border-b"><th className="p-4">Employee</th><th>Date</th><th>In</th><th>Out</th><th>Distance</th><th className="pr-4 text-right">Hours</th></tr>
+            <tr className="border-b"><th className="p-4">Employee</th><th>Date</th><th>In</th><th>Out</th><th>Distance</th><th className="text-right">Hours</th><th className="pr-4"></th></tr>
           </thead>
           <tbody>
             {(rows.data ?? []).map((r) => (
@@ -184,10 +201,13 @@ function Timesheets() {
                 <td>{fmtTime(r.check_in_at)}</td>
                 <td>{r.check_out_at ? fmtTime(r.check_out_at) : <span className="text-success">open</span>}</td>
                 <td className="text-muted-foreground">{r.check_in_distance_m ?? "—"} m</td>
-                <td className="pr-4 text-right font-mono">{fmtDuration(workedMs(r))}</td>
+                <td className="text-right font-mono">{fmtDuration(workedMs(r))}</td>
+                <td className="pr-2 text-right">
+                  <RecordDialog rec={r} profiles={profiles.data ?? []} trigger={<Button variant="ghost" size="icon" aria-label="Edit record"><Pencil /></Button>} />
+                </td>
               </tr>
             ))}
-            {rows.data?.length === 0 && <tr><td colSpan={6} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
+            {rows.data?.length === 0 && <tr><td colSpan={7} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -198,6 +218,7 @@ function Timesheets() {
 function Employees({ selfId }: { selfId: string }) {
   const qc = useQueryClient();
   const profiles = useProfiles();
+  const adminIds = useAdminIds();
   const create = useServerFn(createEmployee);
   const remove = useServerFn(deleteEmployee);
   const reset = useServerFn(resetEmployeePassword);
@@ -238,9 +259,10 @@ function Employees({ selfId }: { selfId: string }) {
           {(profiles.data ?? []).map((p) => (
             <li key={p.id} className="flex items-center gap-3 p-4">
               <div className="flex-1">
-                <div className="font-medium">{p.full_name} {p.employee_code && <span className="text-xs text-muted-foreground">#{p.employee_code}</span>}</div>
+                <div className="font-medium">{p.full_name} {p.employee_code && <span className="text-xs text-muted-foreground">#{p.employee_code}</span>} {adminIds.data?.has(p.id) && <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">Admin</span>}</div>
                 <div className="text-sm text-muted-foreground">{p.email}{p.department && ` · ${p.department}`}</div>
               </div>
+              <EmployeeDialog p={p} isAdmin={!!adminIds.data?.has(p.id)} trigger={<Button variant="ghost" size="icon" aria-label="Edit employee"><Pencil /></Button>} />
               <Button variant="ghost" size="icon" aria-label="Reset password" onClick={async () => {
                 const pw = prompt(`New password for ${p.full_name} (min 8 characters)`);
                 if (!pw) return;
