@@ -32,12 +32,12 @@ export function RecordDialog({ rec, profiles, trigger }: { rec?: Rec; profiles: 
     e.preventDefault();
     const inAt = new Date(f.inAt).toISOString();
     const outAt = f.outAt ? new Date(f.outAt).toISOString() : null;
-    if (outAt && outAt <= inAt) return toast.error("Check-out must be after check-in");
+    if (outAt && outAt <= inAt) { toast.error("Check-out must be after check-in"); return; }
     const payload = { user_id: f.user_id, check_in_at: inAt, check_out_at: outAt };
     const { error } = rec?.id
       ? await supabase.from("attendance").update(payload).eq("id", rec.id)
       : await supabase.from("attendance").insert(payload);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success(rec?.id ? "Record updated" : "Record added");
     qc.invalidateQueries();
     setOpen(false);
@@ -46,7 +46,7 @@ export function RecordDialog({ rec, profiles, trigger }: { rec?: Rec; profiles: 
   async function remove() {
     if (!rec?.id || !confirm("Delete this record?")) return;
     const { error } = await supabase.from("attendance").delete().eq("id", rec.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Record deleted");
     qc.invalidateQueries();
     setOpen(false);
@@ -89,9 +89,9 @@ export function EmployeeDialog({ p, isAdmin, trigger }: { p: Prof; isAdmin: bool
     const { error } = await supabase.from("profiles").update({
       full_name: f.full_name, employee_code: f.employee_code || null, department: f.department || null,
     }).eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     try { if (f.admin !== isAdmin) await setRole({ data: { id: p.id, admin: f.admin } }); }
-    catch (err: any) { return toast.error(err.message); }
+    catch (err: any) { { toast.error(err.message); return; } }
     toast.success("Employee updated");
     qc.invalidateQueries();
     setOpen(false);
