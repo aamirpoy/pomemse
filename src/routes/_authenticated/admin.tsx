@@ -153,12 +153,13 @@ function Timesheets() {
     totals.set(id, totalMs((rows.data ?? []).filter((r) => r.user_id === id), withBreak)));
 
   function exportCsv() {
-    const lines = [["Employee", "Employee ID", "Date", "Check in", "Check out", "Hours", "In distance (m)", "Out distance (m)"]];
+    const lines = [["Employee", "Employee ID", "Date", "Check in", "Check out", "Hours", "In distance (m)", "Out distance (m)", "Check-in note", "Check-out note"]];
     (rows.data ?? []).forEach((r) => {
       const p = profiles.data?.find((x) => x.id === r.user_id);
       lines.push([p?.full_name ?? "", p?.employee_code ?? "", new Date(r.check_in_at).toLocaleDateString(),
         fmtTime(r.check_in_at), r.check_out_at ? fmtTime(r.check_out_at) : "",
-        (workedMs(r) / 3600000).toFixed(2), String(r.check_in_distance_m ?? ""), String(r.check_out_distance_m ?? "")]);
+        (workedMs(r) / 3600000).toFixed(2), String(r.check_in_distance_m ?? ""), String(r.check_out_distance_m ?? ""),
+        r.check_in_note ?? "", r.check_out_note ?? ""]);
     });
     const csv = lines.map((l) => l.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -199,7 +200,7 @@ function Timesheets() {
       <div className={card}>
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
-            <tr className="border-b"><th className="p-4">Employee</th><th>Date</th><th>In</th><th>Out</th><th>Distance</th><th className="text-right">Hours</th><th className="pr-4"></th></tr>
+            <tr className="border-b"><th className="p-4">Employee</th><th>Date</th><th>In</th><th>Out</th><th>Distance</th><th>Notes</th><th className="text-right">Hours</th><th className="pr-4"></th></tr>
           </thead>
           <tbody>
             {(rows.data ?? []).map((r) => (
@@ -209,13 +210,18 @@ function Timesheets() {
                 <td>{fmtTime(r.check_in_at)}</td>
                 <td>{r.check_out_at ? fmtTime(r.check_out_at) : <span className="text-success">open</span>}</td>
                 <td className="text-muted-foreground">{r.check_in_distance_m ?? "—"} m</td>
+                <td className="max-w-xs text-xs">
+                  {r.check_in_note && <div><span className="font-semibold">In:</span> {r.check_in_note}</div>}
+                  {r.check_out_note && <div><span className="font-semibold">Out:</span> {r.check_out_note}</div>}
+                  {!r.check_in_note && !r.check_out_note && <span className="text-muted-foreground">—</span>}
+                </td>
                 <td className="text-right font-mono">{fmtDuration(workedMs(r))}</td>
                 <td className="pr-2 text-right">
                   <RecordDialog rec={r} profiles={profiles.data ?? []} trigger={<Button variant="ghost" size="icon" aria-label="Edit record"><Pencil /></Button>} />
                 </td>
               </tr>
             ))}
-            {rows.data?.length === 0 && <tr><td colSpan={7} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
+            {rows.data?.length === 0 && <tr><td colSpan={8} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
           </tbody>
         </table>
       </div>

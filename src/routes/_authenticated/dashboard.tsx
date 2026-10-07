@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { MapPin, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import {
   distanceM, fmtDate, fmtDuration, fmtTime, getPosition, workedMs, totalMs, type AttendanceRow,
 } from "@/lib/time";
@@ -61,16 +64,21 @@ function Dashboard() {
   const sumSince = (d: Date) =>
     totalMs((records.data ?? []).filter((r) => new Date(r.check_in_at) >= d), true, now);
 
-  async function clock() {
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
+
+  async function clock(withNote?: string) {
+    setNoteOpen(false);
     setBusy(true);
     try {
       const pos = await getPosition();
       const { latitude, longitude } = pos.coords;
       if (office.data) setLastDistance(Math.round(distanceM(latitude, longitude, office.data.latitude, office.data.longitude)));
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude });
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
       const res = data as { action: string };
       toast.success(res.action === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!");
+      setNote("");
       qc.invalidateQueries({ queryKey: ["my-attendance"] });
     } catch (e: any) {
       toast.error(e.message?.includes("denied") ? "Please allow location access to check in." : e.message);
@@ -89,6 +97,19 @@ function Dashboard() {
   return (
     <div className="min-h-screen">
       <AppHeader />
+      <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{open ? "Check out" : "Check in"}</DialogTitle>
+            <DialogDescription>Add a note if needed (e.g. reason for being late or leaving early). You can skip this.</DialogDescription>
+          </DialogHeader>
+          <Textarea maxLength={500} placeholder="Optional note…" value={note} onChange={(e) => setNote(e.target.value)} />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => clock()}>Skip</Button>
+            <Button onClick={() => clock(note)} disabled={!note.trim()}>Save note & {open ? "check out" : "check in"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
         <section className="overflow-hidden rounded-2xl bg-hero p-8 text-primary-foreground shadow-soft md:p-12">
           <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-center">
@@ -112,7 +133,7 @@ function Dashboard() {
               )}
             </div>
             <button
-              onClick={clock}
+              onClick={() => setNoteOpen(true)}
               disabled={busy || records.isLoading}
               className={`flex h-44 w-44 shrink-0 flex-col items-center justify-center rounded-full text-lg font-semibold transition-transform active:scale-95 disabled:opacity-60 ${
                 open ? "bg-primary-foreground text-primary" : "bg-accent text-accent-foreground animate-pulse-ring"
