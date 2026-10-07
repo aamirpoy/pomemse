@@ -74,7 +74,7 @@ function Dashboard() {
       const pos = await getPosition();
       const { latitude, longitude } = pos.coords;
       if (office.data) setLastDistance(Math.round(distanceM(latitude, longitude, office.data.latitude, office.data.longitude)));
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _note: withNote?.trim() || undefined });
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
       const res = data as { action: string };
       toast.success(res.action === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!");
