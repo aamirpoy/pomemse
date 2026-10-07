@@ -20,10 +20,12 @@ export type Database = {
           check_in_distance_m: number | null
           check_in_lat: number | null
           check_in_lng: number | null
+          check_in_note: string | null
           check_out_at: string | null
           check_out_distance_m: number | null
           check_out_lat: number | null
           check_out_lng: number | null
+          check_out_note: string | null
           id: string
           user_id: string
         }
@@ -32,10 +34,12 @@ export type Database = {
           check_in_distance_m?: number | null
           check_in_lat?: number | null
           check_in_lng?: number | null
+          check_in_note?: string | null
           check_out_at?: string | null
           check_out_distance_m?: number | null
           check_out_lat?: number | null
           check_out_lng?: number | null
+          check_out_note?: string | null
           id?: string
           user_id: string
         }
@@ -44,10 +48,12 @@ export type Database = {
           check_in_distance_m?: number | null
           check_in_lat?: number | null
           check_in_lng?: number | null
+          check_in_note?: string | null
           check_out_at?: string | null
           check_out_distance_m?: number | null
           check_out_lat?: number | null
           check_out_lng?: number | null
+          check_out_note?: string | null
           id?: string
           user_id?: string
         }
@@ -130,7 +136,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      clock_action: { Args: { _lat: number; _lng: number }; Returns: Json }
+      clock_action: {
+        Args: { _lat: number; _lng: number; _note?: string }
+        Returns: Json
+      }
       distance_m: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
