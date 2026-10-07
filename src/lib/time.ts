@@ -5,6 +5,8 @@ export type AttendanceRow = {
   check_out_at: string | null;
   check_in_distance_m: number | null;
   check_out_distance_m: number | null;
+  check_in_note?: string | null;
+  check_out_note?: string | null;
 };
 
 /** Worked milliseconds for a record; open records count until `now`. */
