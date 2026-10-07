@@ -217,7 +217,10 @@ function Timesheets() {
                 </td>
                 <td className="text-right font-mono">{fmtDuration(workedMs(r))}</td>
                 <td className="pr-2 text-right">
-...
+                  <RecordDialog rec={r} profiles={profiles.data ?? []} trigger={<Button variant="ghost" size="icon" aria-label="Edit record"><Pencil /></Button>} />
+                </td>
+              </tr>
+            ))}
             {rows.data?.length === 0 && <tr><td colSpan={8} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
           </tbody>
         </table>

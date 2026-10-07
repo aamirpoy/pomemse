@@ -61,16 +61,21 @@ function Dashboard() {
   const sumSince = (d: Date) =>
     totalMs((records.data ?? []).filter((r) => new Date(r.check_in_at) >= d), true, now);
 
-  async function clock() {
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
+
+  async function clock(withNote?: string) {
+    setNoteOpen(false);
     setBusy(true);
     try {
       const pos = await getPosition();
       const { latitude, longitude } = pos.coords;
       if (office.data) setLastDistance(Math.round(distanceM(latitude, longitude, office.data.latitude, office.data.longitude)));
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude });
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _note: withNote?.trim() || undefined });
       if (error) throw error;
       const res = data as { action: string };
       toast.success(res.action === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!");
+      setNote("");
       qc.invalidateQueries({ queryKey: ["my-attendance"] });
     } catch (e: any) {
       toast.error(e.message?.includes("denied") ? "Please allow location access to check in." : e.message);
