@@ -6,7 +6,7 @@ import { MapPin, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
 import {
-  distanceM, fmtDate, fmtDuration, fmtTime, getPosition, workedMs, type AttendanceRow,
+  distanceM, fmtDate, fmtDuration, fmtTime, getPosition, workedMs, totalMs, type AttendanceRow,
 } from "@/lib/time";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -59,7 +59,7 @@ function Dashboard() {
   const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
   const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() - ((startOfDay.getDay() + 6) % 7));
   const sumSince = (d: Date) =>
-    (records.data ?? []).filter((r) => new Date(r.check_in_at) >= d).reduce((a, r) => a + workedMs(r, now), 0);
+    totalMs((records.data ?? []).filter((r) => new Date(r.check_in_at) >= d), true, now);
 
   async function clock() {
     setBusy(true);
@@ -138,7 +138,7 @@ function Dashboard() {
         </section>
 
         <section className="rounded-xl border bg-card shadow-soft">
-          <h2 className="border-b px-5 py-4 text-xl">My timesheet</h2>
+          <h2 className="border-b px-5 py-4 text-xl">My timesheet <span className="text-sm text-muted-foreground">(1h break deducted per completed day)</span></h2>
           {byDay.size === 0 ? (
             <p className="p-5 text-sm text-muted-foreground">No records yet. Check in when you arrive at the office.</p>
           ) : (
@@ -149,7 +149,7 @@ function Dashboard() {
                   <span className="flex-1 text-sm text-muted-foreground">
                     {rows.slice().reverse().map((r) => `${fmtTime(r.check_in_at)} – ${r.check_out_at ? fmtTime(r.check_out_at) : "now"}`).join(", ")}
                   </span>
-                  <span className="font-mono">{fmtDuration(rows.reduce((a, r) => a + workedMs(r, now), 0))}</span>
+                  <span className="font-mono">{fmtDuration(totalMs(rows, true, now))}</span>
                 </li>
               ))}
             </ul>

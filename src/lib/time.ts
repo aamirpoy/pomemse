@@ -45,3 +45,21 @@ export function distanceM(lat1: number, lng1: number, lat2: number, lng2: number
     Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(toR(lng2 - lng1) / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
+
+export const BREAK_MS = 3600000;
+const dayOf = (iso: string) => new Date(iso).toDateString();
+
+/** Total worked ms; with `withBreak`, each employee-day whose records are all checked out loses 1h (never below 0). */
+export function totalMs(rows: Pick<AttendanceRow, "user_id" | "check_in_at" | "check_out_at">[], withBreak: boolean, now = Date.now()) {
+  const days = new Map<string, { ms: number; open: boolean }>();
+  for (const r of rows) {
+    const k = r.user_id + "|" + dayOf(r.check_in_at);
+    const d = days.get(k) ?? { ms: 0, open: false };
+    d.ms += workedMs(r, now);
+    d.open ||= !r.check_out_at;
+    days.set(k, d);
+  }
+  let t = 0;
+  for (const d of days.values()) t += withBreak && !d.open ? Math.max(0, d.ms - BREAK_MS) : d.ms;
+  return t;
+}
