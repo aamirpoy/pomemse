@@ -2,13 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { fmtDuration, type AttendanceRow } from "@/lib/time";
+import { fmtDuration, totalMs, type AttendanceRow } from "@/lib/time";
 import { summarize } from "@/lib/analytics";
 
 type P = { id: string; full_name: string };
 
 export function Analytics({ profiles }: { profiles: P[] }) {
   const [days, setDays] = useState(30);
+  const [withBreak, setWithBreak] = useState(true);
   const rows = useQuery({
     queryKey: ["att-analytics", days],
     queryFn: async () => {
@@ -20,8 +21,10 @@ export function Analytics({ profiles }: { profiles: P[] }) {
   const s = summarize(data, days);
   const perEmp = profiles.map((p) => {
     const e = s.perUser.get(p.id);
-    return { name: p.full_name, hours: +((e?.ms ?? 0) / 3600000).toFixed(1), days: e?.days ?? 0, avgIn: e?.avgIn ?? "—", avgDay: e?.days ? fmtDuration(e.ms / e.days) : "—" };
+    const ms = totalMs(data.filter((r) => r.user_id === p.id), withBreak);
+    return { name: p.full_name, hours: +(ms / 3600000).toFixed(1), days: e?.days ?? 0, avgIn: e?.avgIn ?? "—", avgDay: e?.days ? fmtDuration(ms / e.days) : "—" };
   }).sort((a, b) => b.hours - a.hours);
+  const team = totalMs(data, withBreak);
   const stat = "rounded-xl border bg-card p-4 shadow-soft";
   const tip = { contentStyle: { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 } };
 
@@ -32,10 +35,15 @@ export function Analytics({ profiles }: { profiles: P[] }) {
           <button key={n} onClick={() => setDays(n)}
             className={`rounded-full px-3 py-1 text-sm ${days === n ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>Last {n} days</button>
         ))}
+        <span className="mx-2 w-px bg-border" />
+        {[[true, "After 1h break"], [false, "Without break"]].map(([v, l]) => (
+          <button key={String(v)} onClick={() => setWithBreak(v as boolean)}
+            className={`rounded-full px-3 py-1 text-sm ${withBreak === v ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{l as string}</button>
+        ))}
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className={stat}><div className="text-sm text-muted-foreground">Total hours</div><div className="font-mono text-2xl">{fmtDuration(s.totalMs)}</div></div>
-        <div className={stat}><div className="text-sm text-muted-foreground">Avg per shift</div><div className="font-mono text-2xl">{fmtDuration(data.length ? s.totalMs / data.length : 0)}</div></div>
+        <div className={stat}><div className="text-sm text-muted-foreground">Total hours</div><div className="font-mono text-2xl">{fmtDuration(team)}</div></div>
+        <div className={stat}><div className="text-sm text-muted-foreground">Avg per day</div><div className="font-mono text-2xl">{fmtDuration(s.presentDays ? team / s.presentDays : 0)}</div></div>
         <div className={stat}><div className="text-sm text-muted-foreground">Attendance days</div><div className="font-mono text-2xl">{s.presentDays}</div></div>
         <div className={stat}><div className="text-sm text-muted-foreground">Open check-ins</div><div className="font-mono text-2xl">{data.filter((r) => !r.check_out_at).length}</div></div>
       </div>

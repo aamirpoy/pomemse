@@ -9,7 +9,7 @@ import { EmployeeDialog, RecordDialog } from "@/components/admin/EditDialogs";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
 import { createEmployee, deleteEmployee, resetEmployeePassword } from "@/lib/admin.functions";
-import { fmtDate, fmtDuration, fmtTime, workedMs, type AttendanceRow } from "@/lib/time";
+import { fmtDate, fmtDuration, fmtTime, workedMs, totalMs, type AttendanceRow } from "@/lib/time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,7 +117,7 @@ function Today() {
                 </td>
                 <td>{mine[0] ? fmtTime(mine[0].check_in_at) : "—"}</td>
                 <td>{last?.check_out_at ? fmtTime(last.check_out_at) : "—"}</td>
-                <td className="pr-4 text-right font-mono">{fmtDuration(mine.reduce((a, r) => a + workedMs(r), 0))}</td>
+                <td className="pr-4 text-right font-mono">{fmtDuration(totalMs(mine, true))}</td>
               </tr>
             );
           })}
@@ -147,8 +147,10 @@ function Timesheets() {
     },
   });
   const name = (id: string) => profiles.data?.find((p) => p.id === id)?.full_name ?? "—";
+  const [withBreak, setWithBreak] = useState(true);
   const totals = new Map<string, number>();
-  (rows.data ?? []).forEach((r) => totals.set(r.user_id, (totals.get(r.user_id) ?? 0) + workedMs(r)));
+  [...new Set((rows.data ?? []).map((r) => r.user_id))].forEach((id) =>
+    totals.set(id, totalMs((rows.data ?? []).filter((r) => r.user_id === id), withBreak)));
 
   function exportCsv() {
     const lines = [["Employee", "Employee ID", "Date", "Check in", "Check out", "Hours", "In distance (m)", "Out distance (m)"]];
@@ -176,6 +178,12 @@ function Timesheets() {
             <option value="all">Everyone</option>
             {(profiles.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
           </select>
+        </div>
+        <div className="flex rounded-full bg-secondary p-1 text-sm">
+          {[[true, "After 1h break"], [false, "Without break"]].map(([v, l]) => (
+            <button key={String(v)} onClick={() => setWithBreak(v as boolean)}
+              className={`rounded-full px-3 py-1 ${withBreak === v ? "bg-primary text-primary-foreground" : ""}`}>{l as string}</button>
+          ))}
         </div>
         <RecordDialog profiles={profiles.data ?? []} trigger={<Button className="ml-auto"><Plus /> Add record</Button>} />
         <Button variant="outline" onClick={exportCsv}><Download /> Export CSV</Button>
