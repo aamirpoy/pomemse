@@ -14,3 +14,4 @@
 - Employee accounts are created by admins via server functions (service role); the first admin is bootstrapped on /auth only while no admin exists.
 - Roles live in `user_roles` and are checked with `has_role`; never store roles on profiles.
 - Admin changes are recorded by DB triggers into `audit_log` (admin-read-only), so every edit path is logged without app code changes.
+- Employee totals use `employeeTotalMs`; admin reports use `totalMs` with an explicit break mode, keeping report-only deductions out of employee views.

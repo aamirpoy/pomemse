@@ -11,14 +11,15 @@ export function useMe() {
     queryKey: ["me"],
     queryFn: async () => {
       const { data: u } = await supabase.auth.getUser();
-      const id = u.user!.id;
+      if (!u.user) throw new Error("Please sign in");
+      const id = u.user.id;
       const [{ data: profile }, { data: roles }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", id),
       ]);
       return {
         id,
-        email: u.user!.email ?? "",
+        email: u.user.email ?? "",
         profile,
         isAdmin: (roles ?? []).some((r) => r.role === "admin"),
       };
@@ -45,7 +46,7 @@ export function AppHeader() {
     <header className="sticky top-0 z-10 border-b bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <img src={logoAsset.url} alt="PME — Pioneers of the Middle East" className="h-8 w-auto" />
+          <img src={logoAsset.url} alt="POME — Pioneers of the Middle East" className="h-8 w-auto" />
         </Link>
         <nav className="flex gap-1">
           <Link to="/dashboard" className={linkCls} activeProps={active}>My time</Link>
