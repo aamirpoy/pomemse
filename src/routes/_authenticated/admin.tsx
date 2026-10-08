@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Download, Trash2, KeyRound, Pencil, Plus } from "lucide-react";
 import { Analytics } from "@/components/admin/Analytics";
+import { AuditLog } from "@/components/admin/AuditLog";
 import { EmployeeDialog, RecordDialog } from "@/components/admin/EditDialogs";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
@@ -37,6 +38,11 @@ function useProfiles() {
   });
 }
 
+function HistoryTab() {
+  const { data = [] } = useProfiles();
+  return <AuditLog names={Object.fromEntries(data.map((p) => [p.id, p.full_name]))} />;
+}
+
 function AdminPage() {
   const { data: me, isLoading } = useMe();
   if (isLoading) return <div className="min-h-screen"><AppHeader /></div>;
@@ -60,12 +66,14 @@ function AdminPage() {
             <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="office">Office</TabsTrigger>
+            <TabsTrigger value="history">Change log</TabsTrigger>
           </TabsList>
           <TabsContent value="today"><Today /></TabsContent>
           <TabsContent value="progress"><ProgressTab /></TabsContent>
           <TabsContent value="timesheets"><Timesheets /></TabsContent>
           <TabsContent value="employees"><Employees selfId={me.id} /></TabsContent>
           <TabsContent value="office"><Office /></TabsContent>
+          <TabsContent value="history"><HistoryTab /></TabsContent>
         </Tabs>
       </main>
     </div>
