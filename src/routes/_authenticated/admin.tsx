@@ -20,10 +20,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — PME" },
+      { title: "Admin — POME" },
       { name: "description", content: "Manage employees, office location and timesheets." },
-      { property: "og:title", content: "Admin — PME" },
+      { property: "og:title", content: "Admin — POME" },
       { property: "og:description", content: "Manage employees, office location and timesheets." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AdminPage,

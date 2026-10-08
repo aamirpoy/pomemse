@@ -12,10 +12,12 @@ import logoAsset from "@/assets/pme-logo.png.asset.json";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — PME" },
+      { title: "Sign in — POME" },
       { name: "description", content: "Sign in to check in, check out and view your timesheet." },
-      { property: "og:title", content: "Sign in — PME" },
+      { property: "og:title", content: "Sign in — POME" },
       { property: "og:description", content: "Sign in to check in, check out and view your timesheet." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,
@@ -58,22 +60,14 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen md:grid-cols-2">
-      <div className="hidden bg-hero p-10 text-primary-foreground md:flex md:flex-col md:justify-between">
-        <Link to="/"><img src={logoAsset.url} alt="PME — Pioneers of the Middle East" className="h-12 w-auto rounded bg-primary-foreground p-1.5" /></Link>
-        <p className="font-display text-4xl font-extrabold leading-tight">
-          Your day starts the moment you arrive.
-        </p>
-      </div>
-      <div className="flex items-center justify-center p-6">
+    <div className="flex min-h-screen items-center justify-center border-t-4 border-primary bg-background px-6 py-10">
+      <div className="w-full max-w-sm">
         <form onSubmit={submit} className="w-full max-w-sm space-y-5">
+          <Link to="/" className="mb-10 block">
+            <img src={logoAsset.url} alt="POME — Pioneers of the Middle East" className="mx-auto h-auto w-64 max-w-full" />
+          </Link>
           <div>
-            <h1 className="text-3xl">{needsSetup ? "Create admin account" : "Sign in"}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {needsSetup
-                ? "First-time setup. This account will manage employees."
-                : "Use the login details provided by your manager."}
-            </p>
+            <h1 className="text-2xl">{needsSetup ? "Create admin account" : "Sign in"}</h1>
           </div>
           {needsSetup && (
             <div className="space-y-2">

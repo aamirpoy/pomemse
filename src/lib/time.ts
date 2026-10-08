@@ -49,6 +49,10 @@ export function distanceM(lat1: number, lng1: number, lat2: number, lng2: number
 }
 
 export const BREAK_MS = 3600000;
+/** Employee-facing hours never apply the admin-only break deduction. */
+export function employeeTotalMs(rows: Pick<AttendanceRow, "user_id" | "check_in_at" | "check_out_at">[], now = Date.now()) {
+  return totalMs(rows, false, now);
+}
 const dayOf = (iso: string) => new Date(iso).toDateString();
 
 /** Total worked ms; with `withBreak`, each employee-day whose records are all checked out loses 1h (never below 0). */

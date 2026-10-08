@@ -2,23 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MapPin, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
-  distanceM, fmtDate, fmtDuration, fmtTime, getPosition, workedMs, totalMs, type AttendanceRow,
+  fmtDate, fmtDuration, fmtTime, getPosition, workedMs, employeeTotalMs, type AttendanceRow,
 } from "@/lib/time";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "My time — Punchline" },
+      { title: "My time — POME" },
       { name: "description", content: "Check in, check out and see your hours." },
-      { property: "og:title", content: "My time — Punchline" },
+      { property: "og:title", content: "My time — POME" },
       { property: "og:description", content: "Check in, check out and see your hours." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Dashboard,
@@ -38,21 +40,15 @@ function Dashboard() {
   const { data: me } = useMe();
   const now = useNow();
   const [busy, setBusy] = useState(false);
-  const [lastDistance, setLastDistance] = useState<number | null>(null);
-
-  const office = useQuery({
-    queryKey: ["office"],
-    queryFn: async () =>
-      (await supabase.from("office_settings").select("*").eq("id", 1).single()).data,
-  });
 
   const records = useQuery({
     queryKey: ["my-attendance", me?.id],
     enabled: !!me,
     queryFn: async () => {
+      if (!me) return [];
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
       const { data } = await supabase
-        .from("attendance").select("*").eq("user_id", me!.id)
+        .from("attendance").select("*").eq("user_id", me.id)
         .gte("check_in_at", since).order("check_in_at", { ascending: false });
       return (data ?? []) as AttendanceRow[];
     },
@@ -62,7 +58,7 @@ function Dashboard() {
   const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
   const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() - ((startOfDay.getDay() + 6) % 7));
   const sumSince = (d: Date) =>
-    totalMs((records.data ?? []).filter((r) => new Date(r.check_in_at) >= d), true, now);
+    employeeTotalMs((records.data ?? []).filter((r) => new Date(r.check_in_at) >= d), now);
 
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -73,7 +69,6 @@ function Dashboard() {
     try {
       const pos = await getPosition();
       const { latitude, longitude } = pos.coords;
-      if (office.data) setLastDistance(Math.round(distanceM(latitude, longitude, office.data.latitude, office.data.longitude)));
       const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
       const res = data as { action: string };
@@ -125,14 +120,8 @@ function Dashboard() {
                   ? <>Checked in at <b>{fmtTime(open.check_in_at)}</b> · {fmtDuration(workedMs(open, now))} so far</>
                   : <>Hi {me?.profile?.full_name?.split(" ")[0] || "there"}, you're not checked in.</>}
               </p>
-              {office.data && (
-                <p className="mt-2 flex items-center gap-1.5 text-sm opacity-70">
-                  <MapPin className="h-4 w-4" /> {office.data.name} · within {office.data.radius_m} m
-                  {lastDistance !== null && <> · you were {lastDistance} m away</>}
-                </p>
-              )}
             </div>
-            <button
+            <Button
               onClick={() => setNoteOpen(true)}
               disabled={busy || records.isLoading}
               className={`flex h-44 w-44 shrink-0 flex-col items-center justify-center rounded-full text-lg font-semibold transition-transform active:scale-95 disabled:opacity-60 ${
@@ -140,8 +129,8 @@ function Dashboard() {
               }`}
             >
               {busy ? <Loader2 className="h-8 w-8 animate-spin" /> : open ? "Check out" : "Check in"}
-              <span className="mt-1 text-xs font-normal opacity-70">{busy ? "Checking location…" : "Tap to verify location"}</span>
-            </button>
+              {busy && <span className="mt-1 text-xs font-normal opacity-70">Please wait…</span>}
+            </Button>
           </div>
         </section>
 
@@ -159,18 +148,18 @@ function Dashboard() {
         </section>
 
         <section className="rounded-xl border bg-card shadow-soft">
-          <h2 className="border-b px-5 py-4 text-xl">My timesheet <span className="text-sm text-muted-foreground">(1h break deducted per completed day)</span></h2>
+          <h2 className="border-b px-5 py-4 text-xl">My timesheet</h2>
           {byDay.size === 0 ? (
             <p className="p-5 text-sm text-muted-foreground">No records yet. Check in when you arrive at the office.</p>
           ) : (
             <ul className="divide-y">
               {[...byDay.entries()].map(([day, rows]) => (
                 <li key={day} className="flex flex-wrap items-center gap-4 px-5 py-3">
-                  <span className="w-32 font-medium">{fmtDate(rows[0]!.check_in_at)}</span>
+                  <span className="w-32 font-medium">{rows[0] ? fmtDate(rows[0].check_in_at) : day}</span>
                   <span className="flex-1 text-sm text-muted-foreground">
                     {rows.slice().reverse().map((r) => `${fmtTime(r.check_in_at)} – ${r.check_out_at ? fmtTime(r.check_out_at) : "now"}`).join(", ")}
                   </span>
-                  <span className="font-mono">{fmtDuration(totalMs(rows, true, now))}</span>
+                  <span className="font-mono">{fmtDuration(employeeTotalMs(rows, now))}</span>
                 </li>
               ))}
             </ul>
