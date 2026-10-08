@@ -1,0 +1,4 @@
+- [ ] Hide break deductions and office radius/distance from employee pages; retain admin options.
+- [ ] Simplify opening and sign-in pages using the existing logo and palette.
+- [ ] Correct displayed company name to POME, preserving the designed O in the supplied logo.
+- [ ] Verify the updated pages and employee-hour calculation.
