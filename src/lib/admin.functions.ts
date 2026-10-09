@@ -113,7 +113,6 @@ export const setAdminRole = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     if (!callerIsOwner(context)) throw new Error("Only the owner can change admin access");
-    if (await targetIsOwner(data.id) && !data.admin) throw new Error("The owner's admin access can't be removed");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.admin) {
       await supabaseAdmin.from("user_roles").upsert({ user_id: data.id, role: "admin" }, { onConflict: "user_id,role" });
