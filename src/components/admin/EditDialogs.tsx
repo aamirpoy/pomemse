@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { setAdminRole } from "@/lib/admin.functions";
+import { useMe } from "@/components/AppHeader";
+import { isOwnerEmail } from "@/lib/owner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,6 +83,8 @@ type Prof = { id: string; full_name: string; employee_code: string | null; depar
 export function EmployeeDialog({ p, isAdmin, trigger }: { p: Prof; isAdmin: boolean; trigger: React.ReactNode }) {
   const qc = useQueryClient();
   const setRole = useServerFn(setAdminRole);
+  const { data: me } = useMe();
+  const owner = isOwnerEmail(me?.email);
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ full_name: "", employee_code: "", department: "", admin: false });
 
@@ -106,7 +110,7 @@ export function EmployeeDialog({ p, isAdmin, trigger }: { p: Prof; isAdmin: bool
           <div className="space-y-1"><Label>Full name</Label><Input required value={f.full_name} onChange={(e) => setF({ ...f, full_name: e.target.value })} /></div>
           <div className="space-y-1"><Label>Employee ID</Label><Input value={f.employee_code} onChange={(e) => setF({ ...f, employee_code: e.target.value })} /></div>
           <div className="space-y-1"><Label>Department</Label><Input value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} /></div>
-          <label className="flex items-center gap-2 text-sm"><Checkbox checked={f.admin} onCheckedChange={(v) => setF({ ...f, admin: !!v })} /> Admin access</label>
+          {owner && <label className="flex items-center gap-2 text-sm"><Checkbox checked={f.admin} onCheckedChange={(v) => setF({ ...f, admin: !!v })} /> Admin access</label>}
           <Button type="submit">Save</Button>
         </form>
       </DialogContent>

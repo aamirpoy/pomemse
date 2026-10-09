@@ -9,6 +9,7 @@ import { AuditLog } from "@/components/admin/AuditLog";
 import { EmployeeDialog, RecordDialog } from "@/components/admin/EditDialogs";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
+import { isOwnerEmail } from "@/lib/owner";
 import { createEmployee, deleteEmployee, resetEmployeePassword } from "@/lib/admin.functions";
 import { fmtDate, fmtDuration, fmtTime, workedMs, totalMs, type AttendanceRow } from "@/lib/time";
 import { Button } from "@/components/ui/button";
@@ -246,6 +247,7 @@ function Employees({ selfId }: { selfId: string }) {
   const create = useServerFn(createEmployee);
   const remove = useServerFn(deleteEmployee);
   const reset = useServerFn(resetEmployeePassword);
+  const { data: me } = useMe();
   const empty = { full_name: "", email: "", password: "", employee_code: "", department: "", is_admin: false };
   const [f, setF] = useState(empty);
   const [busy, setBusy] = useState(false);
@@ -274,7 +276,8 @@ function Employees({ selfId }: { selfId: string }) {
           </div>
         ))}
         <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={f.is_admin} onCheckedChange={(v) => setF({ ...f, is_admin: !!v })} /> Make admin
+          {isOwnerEmail(me?.email) && <>
+          <Checkbox checked={f.is_admin} onCheckedChange={(v) => setF({ ...f, is_admin: !!v })} /> Make admin</>}
         </label>
         <Button type="submit" className="w-full" disabled={busy}>{busy ? "Adding…" : "Add employee"}</Button>
       </form>
