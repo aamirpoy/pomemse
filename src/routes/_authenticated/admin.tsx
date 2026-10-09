@@ -247,6 +247,7 @@ function Employees({ selfId }: { selfId: string }) {
   const create = useServerFn(createEmployee);
   const remove = useServerFn(deleteEmployee);
   const reset = useServerFn(resetEmployeePassword);
+  const { data: me } = useMe();
   const empty = { full_name: "", email: "", password: "", employee_code: "", department: "", is_admin: false };
   const [f, setF] = useState(empty);
   const [busy, setBusy] = useState(false);
