@@ -164,6 +164,41 @@ export type Database = {
         }
         Relationships: []
       }
+      work_outings: {
+        Row: {
+          attendance_id: string
+          back_at: string | null
+          id: string
+          out_at: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          attendance_id: string
+          back_at?: string | null
+          id?: string
+          out_at?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          attendance_id?: string
+          back_at?: string | null
+          id?: string
+          out_at?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_outings_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -184,6 +219,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      outing_action: { Args: { _reason?: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "employee"
