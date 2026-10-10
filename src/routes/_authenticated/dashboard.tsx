@@ -153,6 +153,19 @@ function Dashboard() {
                   ? <>Checked in at <b>{fmtTime(open.check_in_at)}</b> · {fmtDuration(workedMs(open, now))} so far</>
                   : <>Hi {me?.profile?.full_name?.split(" ")[0] || "there"}, you're not checked in.</>}
               </p>
+              {open && (
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  {currentOut && (
+                    <span className="text-sm opacity-85">
+                      Out for work since <b>{fmtTime(currentOut.out_at)}</b> · {fmtDuration(workedMs({ check_in_at: currentOut.out_at, check_out_at: null }, now))}
+                    </span>
+                  )}
+                  <Button variant="secondary" disabled={busy || outing.isLoading}
+                    onClick={() => (currentOut ? toggleOuting() : setOutOpen(true))}>
+                    {currentOut ? "Back in office" : "Going out for work / meeting"}
+                  </Button>
+                </div>
+              )}
             </div>
             <Button
               onClick={() => setNoteOpen(true)}
