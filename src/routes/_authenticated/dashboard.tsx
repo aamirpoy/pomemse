@@ -63,6 +63,26 @@ function Dashboard() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
 
+  const outing = useQuery({
+    queryKey: ["my-outing", open?.id],
+    enabled: !!open,
+    queryFn: async () => (await supabase.from("work_outings").select("*")
+      .eq("attendance_id", open!.id).order("out_at")).data ?? [],
+  });
+  const currentOut = outing.data?.find((o) => !o.back_at);
+  const [outOpen, setOutOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  async function toggleOuting(r?: string) {
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc("outing_action", r ? { _reason: r } : {});
+      if (error) throw error;
+      toast.success(currentOut ? "Welcome back!" : "Marked as out for work. Your hours keep counting.");
+      setOutOpen(false); setReason("");
+      qc.invalidateQueries({ queryKey: ["my-outing"] });
+    } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+  }
+
   async function clock(withNote?: string) {
     setNoteOpen(false);
     setBusy(true);
@@ -105,6 +125,19 @@ function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={outOpen} onOpenChange={setOutOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Going out for work</DialogTitle>
+            <DialogDescription>Where are you going? (e.g. client meeting, site visit). Your hours keep counting.</DialogDescription>
+          </DialogHeader>
+          <Textarea maxLength={500} placeholder="Reason…" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOutOpen(false)}>Cancel</Button>
+            <Button onClick={() => toggleOuting(reason.trim())} disabled={!reason.trim() || busy}>Go out</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
         <section className="overflow-hidden rounded-2xl bg-hero p-8 text-primary-foreground shadow-soft md:p-12">
           <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-center">
@@ -120,6 +153,19 @@ function Dashboard() {
                   ? <>Checked in at <b>{fmtTime(open.check_in_at)}</b> · {fmtDuration(workedMs(open, now))} so far</>
                   : <>Hi {me?.profile?.full_name?.split(" ")[0] || "there"}, you're not checked in.</>}
               </p>
+              {open && (
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  {currentOut && (
+                    <span className="text-sm opacity-85">
+                      Out for work since <b>{fmtTime(currentOut.out_at)}</b> · {fmtDuration(workedMs({ check_in_at: currentOut.out_at, check_out_at: null }, now))}
+                    </span>
+                  )}
+                  <Button variant="secondary" disabled={busy || outing.isLoading}
+                    onClick={() => (currentOut ? toggleOuting() : setOutOpen(true))}>
+                    {currentOut ? "Back in office" : "Going out for work / meeting"}
+                  </Button>
+                </div>
+              )}
             </div>
             <Button
               onClick={() => setNoteOpen(true)}

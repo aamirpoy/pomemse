@@ -15,3 +15,4 @@
 - Roles live in `user_roles` and are checked with `has_role`; never store roles on profiles.
 - Admin changes are recorded by DB triggers into `audit_log` (admin-read-only), so every edit path is logged without app code changes.
 - Employee totals use `employeeTotalMs`; admin reports use `totalMs` with an explicit break mode, keeping report-only deductions out of employee views.
+- Work outings: employee 'Going out for work' / 'Back in office' only via outing_action DB function; checkout auto-closes open outings. Why: keeps attendance writes server-controlled.

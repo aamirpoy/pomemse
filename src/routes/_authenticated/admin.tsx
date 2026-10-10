@@ -157,6 +157,14 @@ function Timesheets() {
       return ((await q).data ?? []) as AttendanceRow[];
     },
   });
+  const ids = (rows.data ?? []).map((r) => r.id);
+  const outs = useQuery({
+    queryKey: ["outings", ids.join(",")],
+    enabled: ids.length > 0,
+    queryFn: async () => (await supabase.from("work_outings").select("*").in("attendance_id", ids).order("out_at")).data ?? [],
+  });
+  const outMs = (attId: string) => (outs.data ?? []).filter((o) => o.attendance_id === attId)
+    .reduce((s, o) => s + workedMs({ check_in_at: o.out_at, check_out_at: o.back_at }), 0);
   const name = (id: string) => profiles.data?.find((p) => p.id === id)?.full_name ?? "—";
   const [withBreak, setWithBreak] = useState(true);
   const totals = new Map<string, number>();
@@ -164,13 +172,14 @@ function Timesheets() {
     totals.set(id, totalMs((rows.data ?? []).filter((r) => r.user_id === id), withBreak)));
 
   function exportCsv() {
-    const lines = [["Employee", "Employee ID", "Date", "Check in", "Check out", "Hours", "In distance (m)", "Out distance (m)", "Check-in note", "Check-out note"]];
+    const lines = [["Employee", "Employee ID", "Date", "Check in", "Check out", "Hours", "In distance (m)", "Out distance (m)", "Check-in note", "Check-out note", "Out of office (hours)", "Out of office details"]];
     (rows.data ?? []).forEach((r) => {
       const p = profiles.data?.find((x) => x.id === r.user_id);
       lines.push([p?.full_name ?? "", p?.employee_code ?? "", new Date(r.check_in_at).toLocaleDateString(),
         fmtTime(r.check_in_at), r.check_out_at ? fmtTime(r.check_out_at) : "",
         (workedMs(r) / 3600000).toFixed(2), String(r.check_in_distance_m ?? ""), String(r.check_out_distance_m ?? ""),
-        r.check_in_note ?? "", r.check_out_note ?? ""]);
+        r.check_in_note ?? "", r.check_out_note ?? "", (outMs(r.id) / 3600000).toFixed(2),
+        (outs.data ?? []).filter((o) => o.attendance_id === r.id).map((o) => `${fmtTime(o.out_at)}-${o.back_at ? fmtTime(o.back_at) : "open"} ${o.reason ?? ""}`).join("; ")]);
     });
     const csv = lines.map((l) => l.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -211,7 +220,7 @@ function Timesheets() {
       <div className={card}>
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
-            <tr className="border-b"><th className="p-4">Employee</th><th>Date</th><th>In</th><th>Out</th><th>Distance</th><th>Notes</th><th className="text-right">Hours</th><th className="pr-4"></th></tr>
+            <tr className="border-b"><th className="p-4">Employee</th><th>Date</th><th>In</th><th>Out</th><th>Distance</th><th>Notes</th><th>Out of office (work)</th><th className="text-right">Hours</th><th className="pr-4"></th></tr>
           </thead>
           <tbody>
             {(rows.data ?? []).map((r) => (
@@ -226,13 +235,19 @@ function Timesheets() {
                   {r.check_out_note && <div><span className="font-semibold">Out:</span> {r.check_out_note}</div>}
                   {!r.check_in_note && !r.check_out_note && <span className="text-muted-foreground">—</span>}
                 </td>
+                <td className="max-w-xs text-xs">
+                  {(outs.data ?? []).filter((o) => o.attendance_id === r.id).map((o) => (
+                    <div key={o.id}>{fmtTime(o.out_at)} – {o.back_at ? fmtTime(o.back_at) : "still out"} · <b>{fmtDuration(workedMs({ check_in_at: o.out_at, check_out_at: o.back_at }))}</b> · {o.reason}</div>
+                  ))}
+                  {outMs(r.id) === 0 && <span className="text-muted-foreground">—</span>}
+                </td>
                 <td className="text-right font-mono">{fmtDuration(workedMs(r))}</td>
                 <td className="pr-2 text-right">
                   <RecordDialog rec={r} profiles={profiles.data ?? []} trigger={<Button variant="ghost" size="icon" aria-label="Edit record"><Pencil /></Button>} />
                 </td>
               </tr>
             ))}
-            {rows.data?.length === 0 && <tr><td colSpan={8} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
+            {rows.data?.length === 0 && <tr><td colSpan={9} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
           </tbody>
         </table>
       </div>
