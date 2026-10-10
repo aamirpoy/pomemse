@@ -63,6 +63,26 @@ function Dashboard() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
 
+  const outing = useQuery({
+    queryKey: ["my-outing", open?.id],
+    enabled: !!open,
+    queryFn: async () => (await supabase.from("work_outings").select("*")
+      .eq("attendance_id", open!.id).order("out_at")).data ?? [],
+  });
+  const currentOut = outing.data?.find((o) => !o.back_at);
+  const [outOpen, setOutOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  async function toggleOuting(r?: string) {
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc("outing_action", r ? { _reason: r } : {});
+      if (error) throw error;
+      toast.success(currentOut ? "Welcome back!" : "Marked as out for work. Your hours keep counting.");
+      setOutOpen(false); setReason("");
+      qc.invalidateQueries({ queryKey: ["my-outing"] });
+    } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+  }
+
   async function clock(withNote?: string) {
     setNoteOpen(false);
     setBusy(true);
@@ -102,6 +122,19 @@ function Dashboard() {
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => clock()}>Skip</Button>
             <Button onClick={() => clock(note)} disabled={!note.trim()}>Save note & {open ? "check out" : "check in"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={outOpen} onOpenChange={setOutOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Going out for work</DialogTitle>
+            <DialogDescription>Where are you going? (e.g. client meeting, site visit). Your hours keep counting.</DialogDescription>
+          </DialogHeader>
+          <Textarea maxLength={500} placeholder="Reason…" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOutOpen(false)}>Cancel</Button>
+            <Button onClick={() => toggleOuting(reason.trim())} disabled={!reason.trim() || busy}>Go out</Button>
           </div>
         </DialogContent>
       </Dialog>

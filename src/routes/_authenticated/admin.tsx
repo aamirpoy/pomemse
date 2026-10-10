@@ -247,7 +247,7 @@ function Timesheets() {
                 </td>
               </tr>
             ))}
-            {rows.data?.length === 0 && <tr><td colSpan={8} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
+            {rows.data?.length === 0 && <tr><td colSpan={9} className="p-4 text-muted-foreground">No records in this range.</td></tr>}
           </tbody>
         </table>
       </div>
