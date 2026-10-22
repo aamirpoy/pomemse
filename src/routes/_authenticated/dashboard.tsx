@@ -91,8 +91,9 @@ function Dashboard() {
     try {
       const pos = versions.data?.includes("meeting_location") || versions.data?.includes("device_security") ? await getPosition() : undefined;
       const { data, error } = await supabase.rpc("outing_action", {
-        ...(r ? { _reason: r } : {}), _lat: pos?.coords.latitude, _lng: pos?.coords.longitude,
-        _acc: pos?.coords.accuracy, ...(versions.data?.includes("device_security") ? deviceInfo() : {}),
+        ...(r ? { _reason: r } : {}),
+        ...(pos ? { _lat: pos.coords.latitude, _lng: pos.coords.longitude, _acc: pos.coords.accuracy } : {}),
+        ...(versions.data?.includes("device_security") ? deviceInfo() : {}),
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
