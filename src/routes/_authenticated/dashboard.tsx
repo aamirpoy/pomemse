@@ -55,10 +55,15 @@ function Dashboard() {
     },
   });
 
-  const tester = useQuery({
-    queryKey: ["am-tester", me?.id],
+  const versions = useQuery({
+    queryKey: ["my-feature-versions", me?.id],
     enabled: !!me,
-    queryFn: async () => !!(await supabase.from("beta_testers").select("user_id").eq("user_id", me!.id).maybeSingle()).data,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("my_feature_versions");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const open = records.data?.find((r) => !r.check_out_at);
@@ -73,8 +78,10 @@ function Dashboard() {
   const outing = useQuery({
     queryKey: ["my-outing", open?.id],
     enabled: !!open,
-    queryFn: async () => (await supabase.from("work_outings").select("*")
-      .eq("attendance_id", open!.id).order("out_at")).data ?? [],
+    queryFn: async () => {
+      if (!open) return [];
+      return (await supabase.from("work_outings").select("*").eq("attendance_id", open.id).order("out_at")).data ?? [];
+    },
   });
   const currentOut = outing.data?.find((o) => !o.back_at);
   const [outOpen, setOutOpen] = useState(false);
@@ -82,10 +89,10 @@ function Dashboard() {
   async function toggleOuting(r?: string) {
     setBusy(true);
     try {
-      const pos = await getPosition();
+      const pos = versions.data?.includes("meeting_location") || versions.data?.includes("device_security") ? await getPosition() : undefined;
       const { data, error } = await supabase.rpc("outing_action", {
-        ...(r ? { _reason: r } : {}), _lat: pos.coords.latitude, _lng: pos.coords.longitude,
-        _acc: pos.coords.accuracy, ...deviceInfo(),
+        ...(r ? { _reason: r } : {}), _lat: pos?.coords.latitude, _lng: pos?.coords.longitude,
+        _acc: pos?.coords.accuracy, ...(versions.data?.includes("device_security") ? deviceInfo() : {}),
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
@@ -103,7 +110,7 @@ function Dashboard() {
     try {
       const pos = await getPosition();
       const { latitude, longitude, accuracy } = pos.coords;
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...deviceInfo(), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...(versions.data?.includes("device_security") ? deviceInfo() : {}), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
       const res = data as { action?: string; error?: string };
       if (res.error) throw new Error(res.error);
@@ -175,7 +182,7 @@ function Dashboard() {
                       Out for work since <b>{fmtTime(currentOut.out_at)}</b> · {fmtDuration(workedMs({ check_in_at: currentOut.out_at, check_out_at: null }, now))}
                     </span>
                   )}
-                  <Button variant="secondary" disabled={busy || outing.isLoading}
+                  <Button variant="secondary" disabled={busy || outing.isLoading || versions.isPending || versions.isError}
                     onClick={() => (currentOut ? toggleOuting() : setOutOpen(true))}>
                     {currentOut ? "Back in office" : "Going out for work / meeting"}
                   </Button>
@@ -184,7 +191,7 @@ function Dashboard() {
             </div>
             <Button
               onClick={() => setNoteOpen(true)}
-              disabled={busy || records.isLoading}
+              disabled={busy || records.isLoading || versions.isPending || versions.isError}
               className={`flex h-44 w-44 shrink-0 flex-col items-center justify-center rounded-full text-lg font-semibold transition-transform active:scale-95 disabled:opacity-60 ${
                 open ? "bg-primary-foreground text-primary" : "bg-accent text-accent-foreground animate-pulse-ring"
               }`}
@@ -221,7 +228,7 @@ function Dashboard() {
                     {rows.slice().reverse().map((r) => `${fmtTime(r.check_in_at)} – ${r.check_out_at ? fmtTime(r.check_out_at) : "now"}`).join(", ")}
                   </span>
                   <span className="font-mono">{fmtDuration(employeeTotalMs(rows, now))}</span>
-                  {tester.data && rows.filter((r) => r.admin_note).map((r) => (
+                  {versions.data?.includes("admin_notes") && rows.filter((r) => r.admin_note).map((r) => (
                     <div key={r.id} className="w-full rounded-md bg-secondary px-3 py-2 text-sm">
                       <span className="font-semibold">Note from {r.admin_note_by}</span>
                       <span className="text-muted-foreground"> · {r.admin_note_at ? fmtDate(r.admin_note_at) : ""}</span>

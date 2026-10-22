@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TestingVersions } from "@/components/admin/TestingVersions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -70,11 +71,12 @@ function AdminPage() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="mb-6 text-4xl">Admin</h1>
         <Tabs defaultValue="today">
-          <TabsList>
+          <TabsList className="h-auto flex-wrap justify-start">
             <TabsTrigger value="today">Today</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
+            <TabsTrigger value="testing">Testing versions</TabsTrigger>
             <TabsTrigger value="office">Office</TabsTrigger>
             <TabsTrigger value="history">Change log</TabsTrigger>
             <TabsTrigger value="security">
@@ -85,6 +87,7 @@ function AdminPage() {
           <TabsContent value="progress"><ProgressTab /></TabsContent>
           <TabsContent value="timesheets"><Timesheets /></TabsContent>
           <TabsContent value="employees"><Employees selfId={me.id} /></TabsContent>
+          <TabsContent value="testing"><TestingTab /></TabsContent>
           <TabsContent value="office"><Office /></TabsContent>
           <TabsContent value="history"><HistoryTab /></TabsContent>
           <TabsContent value="security"><SecurityTab /></TabsContent>
@@ -108,11 +111,9 @@ function useAdminIds() {
   });
 }
 
-function useTesterIds() {
-  return useQuery({
-    queryKey: ["tester-ids"],
-    queryFn: async () => new Set(((await supabase.from("beta_testers").select("user_id")).data ?? []).map((r) => r.user_id)),
-  });
+function TestingTab() {
+  const { data = [] } = useProfiles();
+  return <TestingVersions profiles={data} />;
 }
 
 function Today() {
@@ -277,15 +278,6 @@ function Employees({ selfId }: { selfId: string }) {
   const qc = useQueryClient();
   const profiles = useProfiles();
   const adminIds = useAdminIds();
-  const testers = useTesterIds();
-  async function toggleTester(id: string, on: boolean) {
-    const { error } = on
-      ? await supabase.from("beta_testers").insert({ user_id: id })
-      : await supabase.from("beta_testers").delete().eq("user_id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(on ? "New features turned on for this person" : "Back to the normal version");
-    qc.invalidateQueries({ queryKey: ["tester-ids"] });
-  }
   const create = useServerFn(createEmployee);
   const remove = useServerFn(deleteEmployee);
   const reset = useServerFn(resetEmployeePassword);
@@ -331,9 +323,6 @@ function Employees({ selfId }: { selfId: string }) {
                 <div className="font-medium">{p.full_name} {p.employee_code && <span className="text-xs text-muted-foreground">#{p.employee_code}</span>} {adminIds.data?.has(p.id) && <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">Admin</span>}</div>
                 <div className="text-sm text-muted-foreground">{p.email}{p.department && ` · ${p.department}`}</div>
               </div>
-              <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Try new features before everyone else">
-                <Checkbox checked={!!testers.data?.has(p.id)} onCheckedChange={(v) => toggleTester(p.id, !!v)} /> Tester
-              </label>
               <EmployeeDialog p={p} isAdmin={!!adminIds.data?.has(p.id)} trigger={<Button variant="ghost" size="icon" aria-label="Edit employee"><Pencil /></Button>} />
               <Button variant="ghost" size="icon" aria-label="Reset password" onClick={async () => {
                 const pw = prompt(`New password for ${p.full_name} (min 8 characters)`);
