@@ -13,9 +13,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 /** Relying-party id + origin derived from the incoming request host. */
 function rp() {
   const h = getRequestHeaders();
-  const host = (h.get("x-forwarded-host") ?? h.get("host") ?? "localhost").split(",")[0].trim();
-  const proto = (h.get("x-forwarded-proto") ?? "https").split(",")[0].trim();
-  return { rpID: host.split(":")[0], origin: `${proto}://${host}` };
+  const host = (h.get("x-forwarded-host") ?? h.get("host") ?? "localhost").split(",")[0]?.trim() ?? "localhost";
+  const proto = (h.get("x-forwarded-proto") ?? "https").split(",")[0]?.trim() ?? "https";
+  return { rpID: host.split(":")[0] ?? "localhost", origin: `${proto}://${host}` };
 }
 
 async function admin() {
@@ -56,7 +56,7 @@ export const getBioRegistrationOptions = createServerFn({ method: "POST" })
       excludeCredentials: (existing ?? []).map((c) => ({ id: c.credential_id, transports: (c.transports ?? []) as any })),
     });
     await saveChallenge(context.userId, options.challenge);
-    return options;
+    return options as any;
   });
 
 export const verifyBioRegistration = createServerFn({ method: "POST" })
@@ -100,7 +100,7 @@ export const getBioAuthOptions = createServerFn({ method: "POST" })
       allowCredentials: creds.map((c) => ({ id: c.credential_id, transports: (c.transports ?? []) as any })),
     });
     await saveChallenge(context.userId, options.challenge);
-    return options;
+    return options as any;
   });
 
 export const verifyBioAuth = createServerFn({ method: "POST" })
