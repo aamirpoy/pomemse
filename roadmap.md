@@ -7,3 +7,4 @@
 - [x] Named testing versions with independent per-employee and everyone access; verified saved settings and restored all versions off.
 - [ ] Arabic / English with RTL. Blocked: waiting for the owner's next testing step.
 - [ ] Audit log revert + soft delete. Blocked: waiting for the owner's next testing step.
+- [x] V4 Registered devices (admin approval per device) + V5 Face/fingerprint check-in; device gate verified end-to-end, both left off for everyone.
