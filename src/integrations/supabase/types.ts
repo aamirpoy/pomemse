@@ -393,6 +393,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_version_everyone: {
+        Args: { _enabled: boolean; _feature: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "employee"
