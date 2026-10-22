@@ -522,6 +522,10 @@ export type Database = {
         }
         Returns: Json
       }
+      punch_device_error: {
+        Args: { _device: string; _required: boolean; _ua: string }
+        Returns: string
+      }
       register_my_device: {
         Args: { _device: string; _ua?: string }
         Returns: Json

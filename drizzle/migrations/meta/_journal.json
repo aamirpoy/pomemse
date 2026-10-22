@@ -92,6 +92,13 @@
       "when": 1792681387816,
       "tag": "0012_language_and_change_undo",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792689326413,
+      "tag": "0013_device_binding_and_distance_alerts",
+      "breakpoints": true
     }
   ]
 }
