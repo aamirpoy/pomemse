@@ -100,7 +100,8 @@ function Dashboard() {
     enabled: !!me && bioOn,
     refetchInterval: 10000,
     queryFn: async () => {
-      const { data, error } = await supabase.from("webauthn_credentials").select("id");
+      if (!me) return [];
+      const { data, error } = await supabase.from("webauthn_credentials").select("id").eq("user_id", me.id);
       if (error) throw error;
       return data ?? [];
     },
