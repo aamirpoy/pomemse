@@ -71,6 +71,13 @@
       "when": 1792668302713,
       "tag": "0009_registered_devices_and_biometric",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792676969776,
+      "tag": "0010_restrict_has_role_lookup",
+      "breakpoints": true
     }
   ]
 }
