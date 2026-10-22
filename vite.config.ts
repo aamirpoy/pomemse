@@ -23,6 +23,7 @@ export default defineConfig({
           if (/node_modules\/tsyringe\/dist\/esm5\/index\.js/.test(id)) {
             return { code: `import "reflect-metadata";\n${code}`, map: null };
           }
+          return null;
         },
       },
     ],
