@@ -78,6 +78,13 @@
       "when": 1792676969776,
       "tag": "0010_restrict_has_role_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792679247005,
+      "tag": "0011_device_setup_and_admin_passkey_reset",
+      "breakpoints": true
     }
   ]
 }

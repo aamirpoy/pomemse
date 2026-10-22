@@ -459,6 +459,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_reset_passkeys: {
+        Args: { _credential?: string; _user: string }
+        Returns: Json
+      }
       clock_action: {
         Args: {
           _acc?: number
@@ -509,6 +513,10 @@ export type Database = {
           _reason?: string
           _ua?: string
         }
+        Returns: Json
+      }
+      register_my_device: {
+        Args: { _device: string; _ua?: string }
         Returns: Json
       }
       set_version_everyone: {
