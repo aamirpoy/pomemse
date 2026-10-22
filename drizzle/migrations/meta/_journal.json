@@ -57,6 +57,13 @@
       "when": 1792664659550,
       "tag": "0007_version_everyone_action",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792664950610,
+      "tag": "0008_restrict_rollout_reads",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "signed in read rollout defaults" ON public.feature_rollouts;
