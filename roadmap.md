@@ -8,3 +8,7 @@
 - [ ] Arabic / English with RTL. Blocked: waiting for the owner's next testing step.
 - [ ] Audit log revert + soft delete. Blocked: waiting for the owner's next testing step.
 - [x] V4 Registered devices (admin approval per device) + V5 Face/fingerprint check-in; device gate verified end-to-end, both left off for everyone.
+- [ ] Admin passkey removal/reset with owner protection and audit history.
+- [ ] Explicit employee device registration and setup status, independent of location.
+- [ ] Diagnose and correct tester location failures without bypassing office checks.
+- [ ] Verify phone-change/setup flows and explain one-time setup.
