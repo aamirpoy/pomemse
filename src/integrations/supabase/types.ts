@@ -146,6 +146,60 @@ export type Database = {
         }
         Relationships: []
       }
+      punch_events: {
+        Row: {
+          accuracy_m: number | null
+          action: string
+          admin_note: string | null
+          created_at: string
+          device_id: string | null
+          distance_m: number | null
+          flags: string[]
+          id: string
+          ip: string | null
+          lat: number | null
+          lng: number | null
+          status: string
+          success: boolean
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accuracy_m?: number | null
+          action: string
+          admin_note?: string | null
+          created_at?: string
+          device_id?: string | null
+          distance_m?: number | null
+          flags?: string[]
+          id?: string
+          ip?: string | null
+          lat?: number | null
+          lng?: number | null
+          status?: string
+          success?: boolean
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accuracy_m?: number | null
+          action?: string
+          admin_note?: string | null
+          created_at?: string
+          device_id?: string | null
+          distance_m?: number | null
+          flags?: string[]
+          id?: string
+          ip?: string | null
+          lat?: number | null
+          lng?: number | null
+          status?: string
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -168,24 +222,42 @@ export type Database = {
         Row: {
           attendance_id: string
           back_at: string | null
+          back_distance_m: number | null
+          back_lat: number | null
+          back_lng: number | null
           id: string
           out_at: string
+          out_distance_m: number | null
+          out_lat: number | null
+          out_lng: number | null
           reason: string | null
           user_id: string
         }
         Insert: {
           attendance_id: string
           back_at?: string | null
+          back_distance_m?: number | null
+          back_lat?: number | null
+          back_lng?: number | null
           id?: string
           out_at?: string
+          out_distance_m?: number | null
+          out_lat?: number | null
+          out_lng?: number | null
           reason?: string | null
           user_id: string
         }
         Update: {
           attendance_id?: string
           back_at?: string | null
+          back_distance_m?: number | null
+          back_lat?: number | null
+          back_lng?: number | null
           id?: string
           out_at?: string
+          out_distance_m?: number | null
+          out_lat?: number | null
+          out_lng?: number | null
           reason?: string | null
           user_id?: string
         }
@@ -205,7 +277,14 @@ export type Database = {
     }
     Functions: {
       clock_action: {
-        Args: { _lat: number; _lng: number; _note?: string }
+        Args: {
+          _acc?: number
+          _device?: string
+          _lat: number
+          _lng: number
+          _note?: string
+          _ua?: string
+        }
         Returns: Json
       }
       distance_m: {
@@ -219,7 +298,30 @@ export type Database = {
         }
         Returns: boolean
       }
-      outing_action: { Args: { _reason?: string }; Returns: Json }
+      log_punch: {
+        Args: {
+          _acc: number
+          _action: string
+          _device: string
+          _dist: number
+          _lat: number
+          _lng: number
+          _ok: boolean
+          _ua: string
+        }
+        Returns: undefined
+      }
+      outing_action: {
+        Args: {
+          _acc?: number
+          _device?: string
+          _lat?: number
+          _lng?: number
+          _reason?: string
+          _ua?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "employee"

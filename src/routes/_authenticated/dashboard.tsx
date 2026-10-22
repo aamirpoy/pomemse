@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   fmtDate, fmtDuration, fmtTime, getPosition, workedMs, employeeTotalMs, type AttendanceRow,
 } from "@/lib/time";
+import { deviceInfo } from "@/lib/device";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -75,12 +76,19 @@ function Dashboard() {
   async function toggleOuting(r?: string) {
     setBusy(true);
     try {
-      const { error } = await supabase.rpc("outing_action", r ? { _reason: r } : {});
+      const pos = await getPosition();
+      const { data, error } = await supabase.rpc("outing_action", {
+        ...(r ? { _reason: r } : {}), _lat: pos.coords.latitude, _lng: pos.coords.longitude,
+        _acc: pos.coords.accuracy, ...deviceInfo(),
+      });
       if (error) throw error;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       toast.success(currentOut ? "Welcome back!" : "Marked as out for work. Your hours keep counting.");
       setOutOpen(false); setReason("");
       qc.invalidateQueries({ queryKey: ["my-outing"] });
-    } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+    } catch (e: any) {
+      toast.error(e.message?.includes("denied") ? "Please allow location access." : e.message);
+    } finally { setBusy(false); }
   }
 
   async function clock(withNote?: string) {
@@ -88,10 +96,11 @@ function Dashboard() {
     setBusy(true);
     try {
       const pos = await getPosition();
-      const { latitude, longitude } = pos.coords;
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
+      const { latitude, longitude, accuracy } = pos.coords;
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...deviceInfo(), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
-      const res = data as { action: string };
+      const res = data as { action?: string; error?: string };
+      if (res.error) throw new Error(res.error);
       toast.success(res.action === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!");
       setNote("");
       qc.invalidateQueries({ queryKey: ["my-attendance"] });

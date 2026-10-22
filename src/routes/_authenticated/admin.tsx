@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Download, Trash2, KeyRound, Pencil, Plus } from "lucide-react";
 import { Analytics } from "@/components/admin/Analytics";
 import { AuditLog } from "@/components/admin/AuditLog";
+import { SecurityAlerts, useNewAlertCount } from "@/components/admin/SecurityAlerts";
 import { EmployeeDialog, RecordDialog } from "@/components/admin/EditDialogs";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
@@ -46,8 +47,14 @@ function HistoryTab() {
   return <AuditLog names={Object.fromEntries(data.map((p) => [p.id, p.full_name]))} />;
 }
 
+function SecurityTab() {
+  const { data = [] } = useProfiles();
+  return <SecurityAlerts names={Object.fromEntries(data.map((p) => [p.id, p.full_name]))} />;
+}
+
 function AdminPage() {
   const { data: me, isLoading } = useMe();
+  const alertCount = useNewAlertCount();
   if (isLoading) return <div className="min-h-screen"><AppHeader /></div>;
   if (!me?.isAdmin)
     return (
@@ -70,6 +77,9 @@ function AdminPage() {
             <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="office">Office</TabsTrigger>
             <TabsTrigger value="history">Change log</TabsTrigger>
+            <TabsTrigger value="security">
+              Security {!!alertCount.data && <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{alertCount.data}</span>}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="today"><Today /></TabsContent>
           <TabsContent value="progress"><ProgressTab /></TabsContent>
@@ -77,6 +87,7 @@ function AdminPage() {
           <TabsContent value="employees"><Employees selfId={me.id} /></TabsContent>
           <TabsContent value="office"><Office /></TabsContent>
           <TabsContent value="history"><HistoryTab /></TabsContent>
+          <TabsContent value="security"><SecurityTab /></TabsContent>
         </Tabs>
       </main>
     </div>
