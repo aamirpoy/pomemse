@@ -107,7 +107,7 @@ export function Devices({ profiles, selfId }: { profiles: { id: string; full_nam
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
           <li>In Testing versions, enable V4 Registered devices for the employee. Enable V5 Face / fingerprint check-in if required.</li>
           <li>The employee signs in on their own phone and taps Register this device on My time. No location or check-in is needed to request approval.</li>
-          <li>Confirm the phone belongs to that employee, then approve its request below. Every new browser needs separate approval.</li>
+            <li>Confirm the phone belongs to that employee, then approve its request below. Each browser can be registered to only one account. Only an admin can remove that registration before reassignment.</li>
           <li>For V5, the employee taps Set up now on their phone. Their phone handles the passkey unlock; the app does not receive a face or fingerprint.</li>
           <li>When changing phones, block or remove the old device, reset the old passkeys below, then repeat registration and setup on the new phone.</li>
         </ol>
