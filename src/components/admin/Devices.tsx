@@ -37,7 +37,6 @@ export function Devices({ profiles, selfId }: { profiles: { id: string; full_nam
       return (data ?? []) as Device[];
     },
   });
-  const [unused] = [];
   const credentials = useQuery({
     queryKey: ["admin-passkeys"],
     refetchInterval: 30000,
