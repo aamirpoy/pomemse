@@ -198,6 +198,15 @@ function Dashboard() {
         </DialogContent>
       </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+        {bioOn && bioCreds.data?.length === 0 && (
+          <section className="flex flex-wrap items-center gap-3 rounded-xl border border-primary bg-card p-5 shadow-soft">
+            <div className="min-w-56 flex-1">
+              <div className="font-semibold">Set up face / fingerprint</div>
+              <p className="text-sm text-muted-foreground">Your admin requires face or fingerprint verification at check-in. Set it up once on this device.</p>
+            </div>
+            <Button onClick={setupBio} disabled={busy}>Set up now</Button>
+          </section>
+        )}
         <section className="overflow-hidden rounded-2xl bg-hero p-8 text-primary-foreground shadow-soft md:p-12">
           <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-center">
             <div>

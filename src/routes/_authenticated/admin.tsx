@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TestingVersions } from "@/components/admin/TestingVersions";
+import { Devices } from "@/components/admin/Devices";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
