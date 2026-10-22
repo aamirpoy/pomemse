@@ -92,6 +92,21 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_testers: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       office_settings: {
         Row: {
           id: number
@@ -298,6 +313,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_beta: { Args: { _uid: string }; Returns: boolean }
       log_punch: {
         Args: {
           _acc: number

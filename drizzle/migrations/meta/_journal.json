@@ -29,6 +29,13 @@
       "when": 1792663731334,
       "tag": "0003_fix_log_punch_ip",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792664259362,
+      "tag": "0004_beta_testers",
+      "breakpoints": true
     }
   ]
 }
