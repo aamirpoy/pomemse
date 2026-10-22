@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ShieldCheck, Users, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { FEATURE_VERSIONS, hasVersionAccess, type FeatureKey } from "@/lib/feature-versions";
-import { Checkbox } from "@/components/ui/checkbox";
+import { FEATURE_VERSIONS, eligibleFor, hasVersionAccess, type FeatureKey } from "@/lib/feature-versions";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
-export function TestingVersions({ profiles }: { profiles: { id: string; full_name: string; employee_code: string | null }[] }) {
+type Person = { id: string; full_name: string; employee_code: string | null };
+
+export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; adminIds: Set<string> }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<FeatureKey>(FEATURE_VERSIONS[0].key);
   const settings = useQuery({
     queryKey: ["version-settings"],
     refetchInterval: 30000,
@@ -27,53 +31,109 @@ export function TestingVersions({ profiles }: { profiles: { id: string; full_nam
   });
   const access = settings.data?.access ?? [];
   const rollouts = settings.data?.rollouts ?? [];
-  async function save(key: FeatureKey, enabled: boolean, userId?: string) {
-    if (!userId && !confirm(`${enabled ? "Enable" : "Turn off"} ${FEATURE_VERSIONS.find((v) => v.key === key)?.name} for everyone? This replaces individual selections for this update.`)) return;
+  const v = FEATURE_VERSIONS.find((x) => x.key === selected)!;
+  const adminOnly = v.audience === "admin";
+  const groupLabel = adminOnly ? "all admins" : "everyone";
+
+  const stats = (key: FeatureKey, audience: "everyone" | "admin") => {
+    const people = eligibleFor(audience, profiles, adminIds);
+    return { on: people.filter((p) => hasVersionAccess(key, p.id, access, rollouts)).length, total: people.length };
+  };
+
+  const people = useMemo(() => {
+    const q = search.toLowerCase();
+    return eligibleFor(v.audience, profiles, adminIds).filter((p) => `${p.full_name} ${p.employee_code ?? ""}`.toLowerCase().includes(q));
+  }, [v.audience, profiles, adminIds, search]);
+
+  async function save(enabled: boolean, userId?: string) {
+    if (!userId && !confirm(`${enabled ? "Turn on" : "Turn off"} "${v.name}" for ${groupLabel}? This replaces individual choices for this update.`)) return;
     setBusy(true);
     try {
       const { error } = userId
-        ? await supabase.from("feature_access").upsert({ feature_key: key, user_id: userId, enabled })
-        : await supabase.rpc("set_version_everyone", { _feature: key, _enabled: enabled });
+        ? await supabase.from("feature_access").upsert({ feature_key: v.key, user_id: userId, enabled })
+        : await supabase.rpc("set_version_everyone", { _feature: v.key, _enabled: enabled });
       if (error) throw error;
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["version-settings"] }),
         qc.invalidateQueries({ queryKey: ["my-feature-versions"] }),
       ]);
-      toast.success("Update access saved");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not save update access"); }
+      toast.success("Saved");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not save"); }
     finally { setBusy(false); }
   }
+
   const disabled = busy || settings.isPending || settings.isError;
+  const s = stats(v.key, v.audience);
+  const allOn = rollouts.some((r) => r.feature_key === v.key && r.enabled_all);
+
   return (
-    <div className="mt-6 space-y-6">
-      <h2 className="text-2xl">Testing versions</h2>
-      {settings.isError && <div className="flex items-center gap-3 text-destructive">Could not load update access.<Button variant="outline" onClick={() => settings.refetch()}>Retry</Button></div>}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {FEATURE_VERSIONS.map((v) => {
-          const count = profiles.filter((p) => hasVersionAccess(v.key, p.id, access, rollouts)).length;
-          const all = rollouts.some((r) => r.feature_key === v.key && r.enabled_all);
-          return <section key={v.key} className="flex flex-col gap-3 rounded-lg border bg-card p-4">
-            <div className="font-mono text-xs text-primary">{v.version}</div>
-            <h3 className="text-lg font-semibold">{v.name}</h3>
-            <div className="text-sm text-muted-foreground">{v.detail}</div>
-            <div className="mt-auto text-sm">{settings.isPending ? "Loading…" : `${count} of ${profiles.length} employees · ${all ? "Everyone by default" : "Selected employees only"}`}</div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" disabled={disabled} onClick={() => save(v.key, true)}>Enable for everyone</Button>
-              <Button variant="ghost" size="sm" disabled={disabled} onClick={() => save(v.key, false)}>Turn off for everyone</Button>
-            </div>
-          </section>;
-        })}
+    <div className="mt-6 space-y-4">
+      <div>
+        <h2 className="text-2xl">Testing versions</h2>
+        <p className="text-sm text-muted-foreground">Pick an update, then choose who gets it. Nothing changes for anyone until you switch it on.</p>
       </div>
-      <div className="max-w-sm space-y-2"><Label htmlFor="testing-search">Find employee</Label><Input id="testing-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or employee ID" /></div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead><tr className="border-b text-left"><th className="py-3 pr-4">Employee</th>{FEATURE_VERSIONS.map((v) => <th key={v.key} className="px-3 py-3"><span className="font-mono text-primary">{v.version}</span><div>{v.name}</div></th>)}</tr></thead>
-          <tbody>{profiles.filter((p) => `${p.full_name} ${p.employee_code ?? ""}`.toLowerCase().includes(search.toLowerCase())).map((p) => <tr key={p.id} className="border-b">
-            <td className="py-4 pr-4 font-medium">{p.full_name}<div className="text-xs text-muted-foreground">{p.employee_code}</div></td>
-            {FEATURE_VERSIONS.map((v) => <td key={v.key} className="px-3 py-4"><Checkbox aria-label={`${v.version} ${v.name} for ${p.full_name}`} disabled={disabled} checked={hasVersionAccess(v.key, p.id, access, rollouts)} onCheckedChange={(on) => save(v.key, on === true, p.id)} /></td>)}
-          </tr>)}</tbody>
-        </table>
-        {!profiles.length && <div className="py-6 text-muted-foreground">No employees yet.</div>}
+      {settings.isError && <div className="flex items-center gap-3 text-destructive">Could not load settings.<Button variant="outline" onClick={() => settings.refetch()}>Retry</Button></div>}
+
+      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+        <nav className="space-y-2" aria-label="Updates">
+          {FEATURE_VERSIONS.map((x) => {
+            const st = stats(x.key, x.audience);
+            const active = x.key === selected;
+            return (
+              <button key={x.key} type="button" onClick={() => { setSelected(x.key); setSearch(""); }}
+                className={`w-full rounded-lg border p-3 text-left transition-colors ${active ? "border-primary bg-primary/5" : "bg-card hover:bg-secondary"}`}>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-primary">{x.version}</span>
+                  <span className="font-medium">{x.name}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  {x.audience === "admin" ? <><ShieldCheck className="size-3.5" /> Admins only</> : <><Users className="size-3.5" /> All staff</>}
+                  <span className="ms-auto">{settings.isPending ? "…" : st.on === 0 ? "Off" : `${st.on}/${st.total} on`}</span>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+
+        <section className="rounded-lg border bg-card">
+          <div className="space-y-3 border-b p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-sm text-primary">{v.version}</span>
+              <h3 className="text-lg font-semibold">{v.name}</h3>
+              <Badge variant="secondary">{adminOnly ? "Admins only" : "All staff"}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">{v.detail}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm">{s.on} of {s.total} {adminOnly ? "admins" : "people"} have it{allOn ? ` · on for ${groupLabel} by default` : ""}</span>
+              <div className="ms-auto flex gap-2">
+                <Button size="sm" disabled={disabled} onClick={() => save(true)}>Turn on for {groupLabel}</Button>
+                <Button size="sm" variant="outline" disabled={disabled} onClick={() => save(false)}>Turn off for {groupLabel}</Button>
+              </div>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="relative mb-3 max-w-sm">
+              <Search className="absolute start-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input type="search" className="ps-8" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find by name or employee ID" aria-label="Find person" />
+            </div>
+            <ul className="divide-y">
+              {people.map((p) => {
+                const on = hasVersionAccess(v.key, p.id, access, rollouts);
+                return (
+                  <li key={p.id} className="flex items-center gap-3 py-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{p.full_name}{adminIds.has(p.id) && <Badge variant="outline" className="ms-2">Admin</Badge>}</div>
+                      <div className="text-xs text-muted-foreground">{p.employee_code}</div>
+                    </div>
+                    <span className={`ms-auto text-xs ${on ? "text-primary" : "text-muted-foreground"}`}>{on ? "On" : "Off"}</span>
+                    <Switch aria-label={`${v.name} for ${p.full_name}`} disabled={disabled} checked={on} onCheckedChange={(c) => save(c, p.id)} />
+                  </li>
+                );
+              })}
+            </ul>
+            {!people.length && <div className="py-6 text-sm text-muted-foreground">{search ? "No one matches that search." : adminOnly ? "No admins yet." : "No employees yet."}</div>}
+          </div>
+        </section>
       </div>
     </div>
   );
