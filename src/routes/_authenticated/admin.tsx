@@ -108,6 +108,13 @@ function useAdminIds() {
   });
 }
 
+function useTesterIds() {
+  return useQuery({
+    queryKey: ["tester-ids"],
+    queryFn: async () => new Set(((await supabase.from("beta_testers").select("user_id")).data ?? []).map((r) => r.user_id)),
+  });
+}
+
 function Today() {
   const profiles = useProfiles();
   const rows = useQuery({
@@ -270,6 +277,15 @@ function Employees({ selfId }: { selfId: string }) {
   const qc = useQueryClient();
   const profiles = useProfiles();
   const adminIds = useAdminIds();
+  const testers = useTesterIds();
+  async function toggleTester(id: string, on: boolean) {
+    const { error } = on
+      ? await supabase.from("beta_testers").insert({ user_id: id })
+      : await supabase.from("beta_testers").delete().eq("user_id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(on ? "New features turned on for this person" : "Back to the normal version");
+    qc.invalidateQueries({ queryKey: ["tester-ids"] });
+  }
   const create = useServerFn(createEmployee);
   const remove = useServerFn(deleteEmployee);
   const reset = useServerFn(resetEmployeePassword);
@@ -315,6 +331,9 @@ function Employees({ selfId }: { selfId: string }) {
                 <div className="font-medium">{p.full_name} {p.employee_code && <span className="text-xs text-muted-foreground">#{p.employee_code}</span>} {adminIds.data?.has(p.id) && <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">Admin</span>}</div>
                 <div className="text-sm text-muted-foreground">{p.email}{p.department && ` · ${p.department}`}</div>
               </div>
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Try new features before everyone else">
+                <Checkbox checked={!!testers.data?.has(p.id)} onCheckedChange={(v) => toggleTester(p.id, !!v)} /> Tester
+              </label>
               <EmployeeDialog p={p} isAdmin={!!adminIds.data?.has(p.id)} trigger={<Button variant="ghost" size="icon" aria-label="Edit employee"><Pencil /></Button>} />
               <Button variant="ghost" size="icon" aria-label="Reset password" onClick={async () => {
                 const pw = prompt(`New password for ${p.full_name} (min 8 characters)`);
