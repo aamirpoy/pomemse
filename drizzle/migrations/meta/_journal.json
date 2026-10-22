@@ -43,6 +43,13 @@
       "when": 1792664286492,
       "tag": "0005_admin_edit_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792664646684,
+      "tag": "0006_named_testing_versions",
+      "breakpoints": true
     }
   ]
 }
