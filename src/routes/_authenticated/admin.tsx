@@ -90,7 +90,7 @@ function AdminPage() {
           <TabsContent value="timesheets"><Timesheets /></TabsContent>
           <TabsContent value="employees"><Employees selfId={me.id} /></TabsContent>
           <TabsContent value="testing"><TestingTab /></TabsContent>
-          <TabsContent value="devices"><Devices profiles={useProfilesData()} selfId={me.id} /></TabsContent>
+          <TabsContent value="devices"><DevicesTab selfId={me.id} /></TabsContent>
           <TabsContent value="office"><Office /></TabsContent>
           <TabsContent value="history"><HistoryTab /></TabsContent>
           <TabsContent value="security"><SecurityTab /></TabsContent>
@@ -117,6 +117,11 @@ function useAdminIds() {
 function TestingTab() {
   const { data = [] } = useProfiles();
   return <TestingVersions profiles={data} />;
+}
+
+function DevicesTab({ selfId }: { selfId: string }) {
+  const { data = [] } = useProfiles();
+  return <Devices profiles={data} selfId={selfId} />;
 }
 
 function Today() {
