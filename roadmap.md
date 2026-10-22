@@ -12,5 +12,7 @@
 - [x] Explicit employee device registration and setup status, independent of location; registered → pending → approved verified through UI.
 - [x] Investigate location rules; keep geofence unchanged and add admin Test my location to inspect saved office area and GPS accuracy.
 - [x] One-time setup and phone-change instructions in Devices; scope personal credential lookup to signed-in employee.
-- [ ] Reproduce affected tester's outside-office failure. Blocked: needs that phone's failing attempt; current saved office coordinates pass and no failed production punches were recorded.
+- [ ] Enforce one registered device/browser per account, releasable only by admins.
+- [ ] Show distance on outside-office rejections and persist attempts in Security.
+- [ ] Stop registered devices being incorrectly flagged as new; verify registration, approved punches and blocked attempts.
 - [ ] Verify removal/re-enrollment using a real phone passkey. Blocked: simulated enrollment did not complete; admin controls render, but actual removal was not verified.
