@@ -3,6 +3,6 @@
 - [x] Correct displayed company name to POME, preserving the designed O in the supplied logo.
 - [x] Verify the updated pages and employee-hour calculation.- [x] Device & IP checks with silent security alerts (Security tab); fresh location required for meeting out/back.
 - [x] Tester switch per employee (new features only for testers).
-- [ ] Admin notes on timesheet edits shown to employee.
+- [x] Admin notes on timesheet edits shown to employee (testers).
 - [ ] Arabic / English with RTL.
 - [ ] Audit log revert + soft delete.
