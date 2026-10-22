@@ -12,4 +12,19 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    plugins: [
+      {
+        // tsyringe (used by the face/fingerprint library) throws on load unless the
+        // reflect polyfill runs first; prepend it so the server can start.
+        name: "tsyringe-reflect-polyfill",
+        enforce: "pre",
+        transform(code: string, id: string) {
+          if (/node_modules\/tsyringe\/dist\/esm5\/index\.js/.test(id)) {
+            return { code: `import "reflect-metadata";\n${code}`, map: null };
+          }
+        },
+      },
+    ],
+  },
 });
