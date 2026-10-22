@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
 import { isOwnerEmail } from "@/lib/owner";
 import { createEmployee, deleteEmployee, resetEmployeePassword } from "@/lib/admin.functions";
-import { fmtDate, fmtDuration, fmtTime, workedMs, totalMs, type AttendanceRow } from "@/lib/time";
+import { fmtDate, fmtDuration, fmtTime, workedMs, totalMs, getPosition, distanceM, type AttendanceRow } from "@/lib/time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -361,6 +361,18 @@ function Office() {
     queryFn: async () => (await supabase.from("office_settings").select("*").eq("id", 1).single()).data,
   });
   const [f, setF] = useState({ name: "", latitude: "", longitude: "", radius_m: "" });
+  const [locationResult, setLocationResult] = useState<string>();
+  const [checkingLocation, setCheckingLocation] = useState(false);
+  async function checkLocation() {
+    if (!office.data) return;
+    setCheckingLocation(true);
+    try {
+      const pos = await getPosition();
+      const distance = distanceM(pos.coords.latitude, pos.coords.longitude, office.data.latitude, office.data.longitude);
+      setLocationResult(`${distance <= office.data.radius_m ? "Inside" : "Outside"} saved office area · ${Math.round(distance)} m from office · GPS accuracy ±${Math.round(pos.coords.accuracy)} m · allowed radius ${office.data.radius_m} m`);
+    } catch (e) { setLocationResult(e instanceof Error ? e.message : "Could not get location"); }
+    finally { setCheckingLocation(false); }
+  }
   useEffect(() => {
     if (office.data) setF({ name: office.data.name, latitude: String(office.data.latitude), longitude: String(office.data.longitude), radius_m: String(office.data.radius_m) });
   }, [office.data]);
@@ -385,12 +397,16 @@ function Office() {
         <div className="space-y-1"><Label>Longitude</Label><Input required value={f.longitude} onChange={(e) => setF({ ...f, longitude: e.target.value })} /></div>
       </div>
       <div className="space-y-1"><Label>Allowed radius (meters)</Label><Input type="number" min={10} required value={f.radius_m} onChange={(e) => setF({ ...f, radius_m: e.target.value })} /></div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit">Save</Button>
         <Button type="button" variant="outline" onClick={() => navigator.geolocation.getCurrentPosition(
           (p) => setF({ ...f, latitude: String(p.coords.latitude), longitude: String(p.coords.longitude) }),
           (e) => toast.error(e.message), { enableHighAccuracy: true })}>Use my current location</Button>
         <Button asChild variant="ghost"><a target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${f.latitude},${f.longitude}`}>View on map</a></Button>
+      </div>
+      <div className="border-t pt-4">
+        <Button type="button" variant="outline" disabled={checkingLocation || !office.data} onClick={checkLocation}>{checkingLocation ? "Checking…" : "Test my location"}</Button>
+        {locationResult && <p className="mt-3 text-sm text-muted-foreground" role="status">{locationResult}</p>}
       </div>
     </form>
   );
