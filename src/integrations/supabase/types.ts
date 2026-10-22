@@ -116,6 +116,47 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_access: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          feature_key: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_rollouts: {
+        Row: {
+          enabled_all: boolean
+          feature_key: string
+        }
+        Insert: {
+          enabled_all?: boolean
+          feature_key: string
+        }
+        Update: {
+          enabled_all?: boolean
+          feature_key?: string
+        }
+        Relationships: []
+      }
       office_settings: {
         Row: {
           id: number
@@ -315,6 +356,10 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      has_feature_access: {
+        Args: { _feature: string; _uid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -336,6 +381,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      my_feature_versions: { Args: never; Returns: string[] }
       outing_action: {
         Args: {
           _acc?: number
@@ -346,6 +392,10 @@ export type Database = {
           _ua?: string
         }
         Returns: Json
+      }
+      set_version_everyone: {
+        Args: { _enabled: boolean; _feature: string }
+        Returns: undefined
       }
     }
     Enums: {
