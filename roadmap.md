@@ -15,5 +15,6 @@
 - [x] Enforce one registered device/browser per account, releasable only by admins; unique index, immutable binding and admin deletion policy verified.
 - [x] Show distance on outside-office rejections and persist attempts in Security; preserve office radius and testing-version assignments.
 - [x] Exclude registered devices from new-device alerts, refresh approval before punching, distinguish device blocks from outside-office flags, and show Security loading/errors.
-- [ ] Verify account-switch registration, approved punches and outside-office checkout through signed-in UI. Blocked: preview is signed out and session minting is unavailable; user must sign in.
+- [x] Signed-in UI verification: register → pending → approve → check in → outside checkout rejected at 25,275 m → Security alert → inside checkout succeeds. Registered punches have no new-device flag; binding reassignment is rejected. Temporary attendance/device removed and feature choices restored.
+- [x] Fix the reproduced PostgreSQL array-flag error that rolled back outside attempts; use array_append for every security flag and keep a regression check.
 - [ ] Verify removal/re-enrollment using a real phone passkey. Blocked: simulated enrollment did not complete; admin controls render, but actual removal was not verified.
