@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtDate, fmtTime } from "@/lib/time";
 
@@ -52,6 +53,26 @@ export function AuditLog({ names }: { names: Record<string, string> }) {
     },
   });
 
+  const qc = useQueryClient();
+  const undoOn = useQuery({
+    queryKey: ["my-feature-versions-admin"],
+    queryFn: async () => ((await supabase.rpc("my_feature_versions")).data ?? []).includes("change_undo"),
+  });
+  const [undoing, setUndoing] = useState<string>();
+  async function undo(r: Entry) {
+    const what = r.action === "delete" ? "restore this deleted record" : r.action === "insert" ? "remove this added record" : "put back the old values";
+    if (!confirm(`Undo this change? This will ${what}. The undo itself is also recorded in the log.`)) return;
+    setUndoing(r.id);
+    try {
+      const { error } = await supabase.rpc("admin_revert_change", { _log: r.id });
+      if (error) throw error;
+      toast.success("Change undone");
+      qc.invalidateQueries();
+    } catch (e: any) { toast.error(e.message); } finally { setUndoing(undefined); }
+  }
+  const canUndo = (r: Entry) =>
+    ["attendance", "work_outings", "trusted_devices"].includes(r.table_name) ||
+    (["office_settings", "profiles"].includes(r.table_name) && r.action === "update");
   const [person, setPerson] = useState("all");
   const [type, setType] = useState("all");
 
@@ -156,7 +177,17 @@ export function AuditLog({ names }: { names: Record<string, string> }) {
                     </>
                   )}
                 </span>
-                <span className="text-xs text-muted-foreground">{fmtTime(r.created_at)}</span>
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {r.reverted_at ? (
+                    <span className="rounded-full bg-secondary px-2 py-0.5">Undone {fmtDate(r.reverted_at)} {fmtTime(r.reverted_at)}</span>
+                  ) : undoOn.data && canUndo(r) && (
+                    <button onClick={() => undo(r)} disabled={undoing === r.id}
+                      className="rounded-md border px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-50">
+                      {undoing === r.id ? "Undoing…" : r.action === "delete" ? "Restore" : "Undo"}
+                    </button>
+                  )}
+                  {fmtTime(r.created_at)}
+                </span>
               </div>
               <ul className="mt-2 space-y-0.5 text-xs">
                 {changes(r.old_data, r.new_data).map((c) => (
