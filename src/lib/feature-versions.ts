@@ -4,6 +4,8 @@ export const FEATURE_VERSIONS = [
   { key: "admin_notes", version: "V3", name: "Admin edit notes", detail: "Employee can see notes attached to edited time records" },
   { key: "device_approval", version: "V4", name: "Registered devices", detail: "Check-in only from devices an admin has approved" },
   { key: "biometric_check", version: "V5", name: "Face / fingerprint check-in", detail: "Phone's face or fingerprint unlock required before check-in/out" },
+  { key: "arabic_language", version: "V6", name: "Arabic / English", detail: "Employee can switch My time to Arabic (right-to-left)" },
+  { key: "change_undo", version: "V7", name: "Undo in change log", detail: "Admin can undo edits and restore deleted time records (tick for admins)" },
 ] as const;
 
 export type FeatureKey = typeof FEATURE_VERSIONS[number]["key"];
