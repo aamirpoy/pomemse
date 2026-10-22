@@ -61,8 +61,8 @@ const AR: Record<string, string> = {
   "You must be at the office to check in or out.": "يجب أن تكون في المكتب لتسجيل الدخول أو الخروج.",
 };
 
-type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (s: string) => string; locale: string };
-const LangCtx = createContext<Ctx>({ lang: "en", setLang: () => {}, t: (s) => s, locale: "en-GB" });
+type Ctx = { available: boolean; lang: Lang; setLang: (l: Lang) => void; t: (s: string) => string; locale: string };
+const LangCtx = createContext<Ctx>({ available: false, lang: "en", setLang: () => {}, t: (s) => s, locale: "en-GB" });
 
 export function translate(lang: Lang, s: string) {
   return lang === "ar" ? AR[s] ?? s : s;
@@ -80,7 +80,7 @@ export function LanguageProvider({ enabled, children }: { enabled: boolean; chil
   }, [lang]);
   const setLang = (l: Lang) => { localStorage.setItem("pome-lang", l); setSaved(l); };
   return (
-    <LangCtx.Provider value={{ lang, setLang, t: (s) => translate(lang, s), locale: lang === "ar" ? "ar-AE" : "en-GB" }}>
+    <LangCtx.Provider value={{ available: enabled, lang, setLang, t: (s) => translate(lang, s), locale: lang === "ar" ? "ar-AE" : "en-GB" }}>
       {children}
     </LangCtx.Provider>
   );

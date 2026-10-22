@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import logoAsset from "@/assets/pme-logo.png.asset.json";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { useLang } from "@/lib/i18n";
 
 export function useMe() {
   return useQuery({
@@ -31,6 +32,7 @@ export function AppHeader() {
   const { data: me } = useMe();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { t, lang, setLang, available } = useLang();
 
   async function signOut() {
     await qc.cancelQueries();
@@ -49,17 +51,22 @@ export function AppHeader() {
           <img src={logoAsset.url} alt="POME — Pioneers of the Middle East" className="h-8 w-auto" />
         </Link>
         <nav className="flex gap-1">
-          <Link to="/dashboard" className={linkCls} activeProps={active}>My time</Link>
+          <Link to="/dashboard" className={linkCls} activeProps={active}>{t("My time")}</Link>
           {me?.isAdmin && (
-            <Link to="/admin" className={linkCls} activeProps={active}>Admin</Link>
+            <Link to="/admin" className={linkCls} activeProps={active}>{t("Admin")}</Link>
           )}
         </nav>
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ms-auto flex items-center gap-3">
           <span className="hidden text-sm text-muted-foreground sm:inline">
             {me?.profile?.full_name || me?.email}
           </span>
+          {available && (
+            <Button variant="outline" size="sm" onClick={() => setLang(lang === "ar" ? "en" : "ar")} aria-label={t("Language")}>
+              {lang === "ar" ? "English" : "العربية"}
+            </Button>
+          )}
           <ChangePasswordDialog />
-          <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+          <Button variant="ghost" size="icon" onClick={signOut} aria-label={t("Sign out")}>
             <LogOut />
           </Button>
         </div>
