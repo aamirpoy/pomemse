@@ -69,11 +69,41 @@ function Dashboard() {
   });
 
   const bioOn = versions.data?.includes("biometric_check") ?? false;
+  const approvalOn = versions.data?.includes("device_approval") ?? false;
+  const [currentDevice, setCurrentDevice] = useState<string>();
+  useEffect(() => { if (approvalOn) setCurrentDevice(deviceInfo()._device); }, [approvalOn]);
+  const myDevice = useQuery({
+    queryKey: ["my-device", me?.id, currentDevice],
+    enabled: !!me && approvalOn && !!currentDevice,
+    refetchInterval: 10000,
+    queryFn: async () => {
+      if (!me || !currentDevice) return null;
+      const { data, error } = await supabase.from("trusted_devices").select("status").eq("user_id", me.id).eq("device_id", currentDevice).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  async function registerDevice() {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("register_my_device", deviceInfo());
+      if (error) throw error;
+      const status = (data as { status?: string })?.status;
+      toast.success(status === "approved" ? "This device is already approved." : "Device sent to your admin for approval.");
+      await Promise.all([myDevice.refetch(), qc.invalidateQueries({ queryKey: ["trusted-devices"] })]);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(false); }
+  }
   const deviceOn = (v: string) => v === "device_security" || v === "device_approval";
   const bioCreds = useQuery({
     queryKey: ["my-bio-creds", me?.id],
     enabled: !!me && bioOn,
-    queryFn: async () => (await supabase.from("webauthn_credentials").select("id")).data ?? [],
+    refetchInterval: 10000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("webauthn_credentials").select("id");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
   const bioAuthOptions = useServerFn(getBioAuthOptions);
   const bioAuthVerify = useServerFn(verifyBioAuth);
@@ -144,6 +174,7 @@ function Dashboard() {
     setNoteOpen(false);
     setBusy(true);
     try {
+      if (approvalOn && myDevice.data?.status !== "approved") { await registerDevice(); return; }
       if (bioOn) await verifyBio();
       const pos = await getPosition();
       const { latitude, longitude, accuracy } = pos.coords;
@@ -198,6 +229,10 @@ function Dashboard() {
         </DialogContent>
       </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+        {approvalOn && <section className="flex flex-wrap items-center gap-3 border-y py-4">
+          <div className="min-w-0 flex-1"><div className="font-semibold">Registered device</div><div className="text-sm text-muted-foreground">{myDevice.isError ? "Could not load device approval." : myDevice.isPending ? "Checking approval…" : myDevice.data?.status === "approved" ? "Approved" : myDevice.data?.status === "pending" ? "Waiting for admin approval" : myDevice.data?.status === "rejected" ? "Blocked — contact your admin" : "Not registered"}</div></div>
+          {myDevice.isError ? <Button variant="outline" onClick={() => myDevice.refetch()}>Retry</Button> : !myDevice.isPending && !myDevice.data && <Button onClick={registerDevice} disabled={busy}>Register this device</Button>}
+        </section>}
         {bioOn && bioCreds.data?.length === 0 && (
           <section className="flex flex-wrap items-center gap-3 rounded-xl border border-primary bg-card p-5 shadow-soft">
             <div className="min-w-56 flex-1">

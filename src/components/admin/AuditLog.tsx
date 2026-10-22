@@ -8,6 +8,7 @@ const TABLES: Record<string, string> = {
   profiles: "Employee details",
   user_roles: "Access role",
   office_settings: "Office settings",
+  webauthn_credentials: "Passkey",
 };
 const HIDE = new Set(["id", "updated_at", "created_at"]);
 
