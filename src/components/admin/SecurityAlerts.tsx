@@ -37,7 +37,7 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
     queryKey: ["punch-events", flaggedOnly, status],
     queryFn: async () => {
       let q = supabase.from("punch_events").select("*").order("created_at", { ascending: false }).limit(300);
-      if (flaggedOnly) q = q.neq("flags", "{}");
+      if (flaggedOnly) q = q.not("flags", "eq", "{}");
       if (status !== "all") q = q.eq("status", status);
       return (await q).data ?? [];
     },
@@ -45,7 +45,7 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
 
   async function setReview(id: string, s: string, note?: string) {
     const { error } = await supabase.from("punch_events").update({ status: s, ...(note !== undefined ? { admin_note: note } : {}) }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["punch-events"] });
     qc.invalidateQueries({ queryKey: ["alert-count"] });
   }
