@@ -1,15 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { isOwnerEmail } from "@/lib/owner";
+import { isOwnerId } from "@/lib/owner";
 
 async function targetIsOwner(id: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-  return isOwnerEmail(data.user?.email);
+  return isOwnerId(id);
 }
 function callerIsOwner(context: any) {
-  return isOwnerEmail(context.claims?.email);
+  return isOwnerId(context.userId);
 }
 
 const employeeSchema = z.object({
@@ -57,11 +55,11 @@ export const getSetupStatus = createServerFn({ method: "GET" }).handler(async ()
   return { needsSetup: (await adminCount()) === 0 };
 });
 
+// Initial setup is complete (owner admin exists); public admin bootstrap is permanently disabled.
 export const bootstrapAdmin = createServerFn({ method: "POST" })
   .inputValidator((d) => employeeSchema.parse(d))
-  .handler(async ({ data }) => {
-    if ((await adminCount()) > 0) throw new Error("Setup already completed");
-    return createAccount(data, "admin");
+  .handler(async (): Promise<{ id: string }> => {
+    throw new Error("Setup already completed");
   });
 
 async function assertAdmin(supabase: any, userId: string) {
