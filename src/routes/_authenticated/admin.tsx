@@ -78,6 +78,7 @@ function AdminPage() {
             <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="testing">Testing versions</TabsTrigger>
+            <TabsTrigger value="devices">Devices</TabsTrigger>
             <TabsTrigger value="office">Office</TabsTrigger>
             <TabsTrigger value="history">Change log</TabsTrigger>
             <TabsTrigger value="security">
@@ -89,6 +90,7 @@ function AdminPage() {
           <TabsContent value="timesheets"><Timesheets /></TabsContent>
           <TabsContent value="employees"><Employees selfId={me.id} /></TabsContent>
           <TabsContent value="testing"><TestingTab /></TabsContent>
+          <TabsContent value="devices"><Devices profiles={useProfilesData()} selfId={me.id} /></TabsContent>
           <TabsContent value="office"><Office /></TabsContent>
           <TabsContent value="history"><HistoryTab /></TabsContent>
           <TabsContent value="security"><SecurityTab /></TabsContent>
