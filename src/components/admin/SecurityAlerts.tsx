@@ -16,16 +16,23 @@ const FLAG_LABEL: Record<string, string> = {
   repeated_failures: "Repeated failed tries",
   impossible_travel: "Impossible travel speed",
   no_device_id: "Device unknown",
+  device_pending: "Waiting for device approval",
+  device_blocked: "Device blocked or assigned to another account",
 };
 const ACTION_LABEL: Record<string, string> = {
   check_in: "Check in", check_out: "Check out", meeting_out: "Going out", meeting_back: "Back in office",
+  device_pending: "Device approval", device_blocked: "Device access",
 };
 
 export function useNewAlertCount() {
   return useQuery({
     queryKey: ["alert-count"],
     refetchInterval: 60000,
-    queryFn: async () => (await supabase.from("punch_events").select("id", { count: "exact", head: true }).eq("status", "new")).count ?? 0,
+    queryFn: async () => {
+      const { count, error } = await supabase.from("punch_events").select("id", { count: "exact", head: true }).eq("status", "new");
+      if (error) throw error;
+      return count ?? 0;
+    },
   });
 }
 
@@ -35,11 +42,14 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
   const [status, setStatus] = useState("new");
   const rows = useQuery({
     queryKey: ["punch-events", flaggedOnly, status],
+    refetchInterval: 10000,
     queryFn: async () => {
       let q = supabase.from("punch_events").select("*").order("created_at", { ascending: false }).limit(300);
       if (flaggedOnly) q = q.not("flags", "eq", "{}");
       if (status !== "all") q = q.eq("status", status);
-      return (await q).data ?? [];
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -62,6 +72,7 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
         </select>
         <span className="text-muted-foreground">Employees are never told about these alerts.</span>
       </div>
+      {rows.isError && <div className="mt-4 flex items-center gap-3 text-destructive">Could not load security events.<Button variant="outline" onClick={() => rows.refetch()}>Retry</Button></div>}
       <div className="mt-4 overflow-x-auto rounded-xl border bg-card shadow-soft">
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
@@ -79,7 +90,7 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
                   <div className="truncate text-muted-foreground" title={r.user_agent ?? ""}>{r.user_agent}</div>
                 </td>
                 <td className="py-3 text-xs">
-                  {r.lat != null ? <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${r.lat},${r.lng}`}>{r.distance_m} m away</a> : "—"}
+                  {r.distance_m != null ? <div>{r.lat != null && r.lng != null ? <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${r.lat},${r.lng}`}>{r.distance_m} m from office</a> : `${r.distance_m} m from office`}</div> : "—"}
                   {r.accuracy_m != null && <div className="text-muted-foreground">±{Math.round(r.accuracy_m)} m</div>}
                 </td>
                 <td className="py-3">
@@ -101,7 +112,8 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
                 </td>
               </tr>
             ))}
-            {rows.data?.length === 0 && <tr><td colSpan={7} className="p-4 text-muted-foreground">Nothing here.</td></tr>}
+            {rows.isPending && <tr><td colSpan={7} className="p-4 text-muted-foreground">Loading security events…</td></tr>}
+            {!rows.isError && rows.data?.length === 0 && <tr><td colSpan={7} className="p-4 text-muted-foreground">Nothing here.</td></tr>}
           </tbody>
         </table>
       </div>

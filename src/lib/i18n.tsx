@@ -59,12 +59,19 @@ const AR: Record<string, string> = {
   "Face / fingerprint set up on this device.": "تم إعداد الوجه / البصمة على هذا الجهاز.",
   "Setup cancelled.": "تم إلغاء الإعداد.",
   "You must be at the office to check in or out.": "يجب أن تكون في المكتب لتسجيل الدخول أو الخروج.",
+  "This device is registered to another account. Only an admin can remove its registration.": "هذا الجهاز مسجل لحساب آخر. يمكن للمسؤول فقط إزالة تسجيله.",
+  "This device is blocked. Please contact your admin.": "هذا الجهاز محظور. يرجى التواصل مع المسؤول.",
+  "This device is waiting for admin approval.": "هذا الجهاز بانتظار موافقة المسؤول.",
 };
 
 type Ctx = { available: boolean; lang: Lang; setLang: (l: Lang) => void; t: (s: string) => string; locale: string };
 const LangCtx = createContext<Ctx>({ available: false, lang: "en", setLang: () => {}, t: (s) => s, locale: "en-GB" });
 
 export function translate(lang: Lang, s: string) {
+  if (lang === "ar") {
+    const distance = /^You are (\d+) m away from the office\./.exec(s)?.[1];
+    if (distance) return `أنت على بُعد ${distance} متر من المكتب. لا يُسمح بهذا الإجراء إلا داخل منطقة المكتب.`;
+  }
   return lang === "ar" ? AR[s] ?? s : s;
 }
 

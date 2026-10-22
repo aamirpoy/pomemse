@@ -109,13 +109,13 @@ function DashboardBody() {
     try {
       const { data, error } = await supabase.rpc("register_my_device", deviceInfo());
       if (error) throw error;
-      const status = (data as { status?: string })?.status;
-      toast.success(t(status === "approved" ? "This device is already approved." : "Device sent to your admin for approval."));
+      const result = data as { status?: string; error?: string };
+      if (result.error) throw new Error(result.error);
+      toast.success(t(result.status === "approved" ? "This device is already approved." : result.status === "rejected" ? "This device is blocked. Please contact your admin." : "Device sent to your admin for approval."));
       await Promise.all([myDevice.refetch(), qc.invalidateQueries({ queryKey: ["trusted-devices"] })]);
     } catch (e: any) { toast.error(t(e.message)); }
     finally { setBusy(false); }
   }
-  const deviceOn = (v: string) => v === "device_security" || v === "device_approval";
   const bioCreds = useQuery({
     queryKey: ["my-bio-creds", me?.id],
     enabled: !!me && bioOn,
@@ -180,7 +180,7 @@ function DashboardBody() {
       const { data, error } = await supabase.rpc("outing_action", {
         ...(r ? { _reason: r } : {}),
         ...(pos ? { _lat: pos.coords.latitude, _lng: pos.coords.longitude, _acc: pos.coords.accuracy } : {}),
-        ...(versions.data?.some(deviceOn) ? deviceInfo() : {}),
+        ...deviceInfo(),
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
@@ -196,11 +196,16 @@ function DashboardBody() {
     setNoteOpen(false);
     setBusy(true);
     try {
-      if (approvalOn && myDevice.data?.status !== "approved") { await registerDevice(); return; }
+      if (approvalOn) {
+        const latest = await myDevice.refetch();
+        if (latest.error) throw new Error("Could not load device approval.");
+        if (!latest.data) { await registerDevice(); return; }
+        if (latest.data.status !== "approved") throw new Error(latest.data.status === "rejected" ? "This device is blocked. Please contact your admin." : "This device is waiting for admin approval.");
+      }
       if (bioOn) await verifyBio();
       const pos = await getPosition();
       const { latitude, longitude, accuracy } = pos.coords;
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...(versions.data?.some(deviceOn) ? deviceInfo() : {}), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...deviceInfo(), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
       const res = data as { action?: string; error?: string };
       if (res.error) throw new Error(res.error);
