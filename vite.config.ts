@@ -13,16 +13,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    build: {
-      rollupOptions: {
-        output: {
-          // Keep the passkey libraries in their own chunk, with the reflect polyfill first,
-          // so shared helpers never pull tsyringe into every page.
-          manualChunks(id: string) {
-            if (/node_modules\/(reflect-metadata|tsyringe|@peculiar|@simplewebauthn|asn1js|pvtsutils|pvutils|@levischuck)\//.test(id)) return "webauthn";
-          },
-        },
-      },
+    resolve: {
+      // Load the reflect polyfill before tsyringe so the passkey library doesn't crash the server.
+      alias: [{ find: /^tsyringe$/, replacement: new URL("./src/lib/tsyringe-shim.ts", import.meta.url).pathname }],
     },
   },
 });
