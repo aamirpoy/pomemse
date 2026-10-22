@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasVersionAccess } from "./feature-versions";
+import { FEATURE_VERSIONS, eligibleFor, hasVersionAccess } from "./feature-versions";
 
 describe("named update access", () => {
   it("does not enable an unassigned version", () => {
@@ -18,5 +18,13 @@ describe("named update access", () => {
   });
   it("can exclude a person while everyone else has access", () => {
     expect(hasVersionAccess("admin_notes", "employee-a", [{ feature_key: "admin_notes", user_id: "employee-a", enabled: false }], [{ feature_key: "admin_notes", enabled_all: true }])).toBe(false);
+  });
+  it("admin-only updates are offered only to admins", () => {
+    const people = [{ id: "admin-a" }, { id: "worker-b" }];
+    expect(eligibleFor("admin", people, new Set(["admin-a"])).map((p) => p.id)).toEqual(["admin-a"]);
+    expect(eligibleFor("everyone", people, new Set(["admin-a"])).length).toBe(2);
+  });
+  it("undo in change log is admin-only", () => {
+    expect(FEATURE_VERSIONS.find((v) => v.key === "change_undo")?.audience).toBe("admin");
   });
 });

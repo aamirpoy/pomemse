@@ -116,7 +116,8 @@ function useAdminIds() {
 
 function TestingTab() {
   const { data = [] } = useProfiles();
-  return <TestingVersions profiles={data} />;
+  const admins = useAdminIds();
+  return <TestingVersions profiles={data} adminIds={admins.data ?? new Set()} />;
 }
 
 function DevicesTab({ selfId }: { selfId: string }) {
