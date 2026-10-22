@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import {
   fmtDate, fmtDuration, fmtTime, getPosition, workedMs, employeeTotalMs, type AttendanceRow,
 } from "@/lib/time";
 import { deviceInfo } from "@/lib/device";
+import { getBioRegistrationOptions, verifyBioRegistration, getBioAuthOptions, verifyBioAuth } from "@/lib/biometric.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
