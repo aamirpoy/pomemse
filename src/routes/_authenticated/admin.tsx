@@ -200,7 +200,8 @@ function Timesheets() {
         r.check_in_note ?? "", r.check_out_note ?? "", (outMs(r.id) / 3600000).toFixed(2),
         (outs.data ?? []).filter((o) => o.attendance_id === r.id).map((o) => `${fmtTime(o.out_at)}-${o.back_at ? fmtTime(o.back_at) : "open"} ${o.reason ?? ""}`).join("; ")]);
     });
-    const csv = lines.map((l) => l.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const safe = (c: string) => (/^[=+\-@\t\r]/.test(c) ? `'${c}` : c);
+    const csv = lines.map((l) => l.map((c) => `"${safe(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = `timesheet_${from}_${to}.csv`;
