@@ -12,10 +12,4 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  vite: {
-    resolve: {
-      // Load the reflect polyfill before tsyringe so the passkey library doesn't crash the server.
-      alias: [{ find: /^tsyringe$/, replacement: new URL("./src/lib/tsyringe-shim.ts", import.meta.url).pathname }],
-    },
-  },
 });
