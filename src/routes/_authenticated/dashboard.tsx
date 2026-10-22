@@ -68,6 +68,39 @@ function Dashboard() {
     },
   });
 
+  const bioOn = versions.data?.includes("biometric_check") ?? false;
+  const deviceOn = (v: string) => v === "device_security" || v === "device_approval";
+  const bioCreds = useQuery({
+    queryKey: ["my-bio-creds", me?.id],
+    enabled: !!me && bioOn,
+    queryFn: async () => (await supabase.from("webauthn_credentials").select("id")).data ?? [],
+  });
+  const bioAuthOptions = useServerFn(getBioAuthOptions);
+  const bioAuthVerify = useServerFn(verifyBioAuth);
+  const bioRegOptions = useServerFn(getBioRegistrationOptions);
+  const bioRegVerify = useServerFn(verifyBioRegistration);
+
+  async function verifyBio() {
+    const { startAuthentication } = await import("@simplewebauthn/browser");
+    const options = await bioAuthOptions({});
+    const response = await startAuthentication({ optionsJSON: options });
+    await bioAuthVerify({ data: { response } });
+  }
+
+  async function setupBio() {
+    setBusy(true);
+    try {
+      const { startRegistration } = await import("@simplewebauthn/browser");
+      const options = await bioRegOptions({});
+      const response = await startRegistration({ optionsJSON: options });
+      await bioRegVerify({ data: { response, label: navigator.userAgent.slice(0, 80) } });
+      toast.success("Face / fingerprint set up on this device.");
+      qc.invalidateQueries({ queryKey: ["my-bio-creds"] });
+    } catch (e: any) {
+      toast.error(/cancel|abort|NotAllowed/i.test(e.message ?? e.name ?? "") ? "Setup cancelled." : e.message);
+    } finally { setBusy(false); }
+  }
+
   const open = records.data?.find((r) => !r.check_out_at);
   const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
   const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() - ((startOfDay.getDay() + 6) % 7));
