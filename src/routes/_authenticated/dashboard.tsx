@@ -128,7 +128,7 @@ function Dashboard() {
       const { data, error } = await supabase.rpc("outing_action", {
         ...(r ? { _reason: r } : {}),
         ...(pos ? { _lat: pos.coords.latitude, _lng: pos.coords.longitude, _acc: pos.coords.accuracy } : {}),
-        ...(versions.data?.includes("device_security") ? deviceInfo() : {}),
+        ...(versions.data?.some(deviceOn) ? deviceInfo() : {}),
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
@@ -144,9 +144,10 @@ function Dashboard() {
     setNoteOpen(false);
     setBusy(true);
     try {
+      if (bioOn) await verifyBio();
       const pos = await getPosition();
       const { latitude, longitude, accuracy } = pos.coords;
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...(versions.data?.includes("device_security") ? deviceInfo() : {}), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...(versions.data?.some(deviceOn) ? deviceInfo() : {}), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
       const res = data as { action?: string; error?: string };
       if (res.error) throw new Error(res.error);
