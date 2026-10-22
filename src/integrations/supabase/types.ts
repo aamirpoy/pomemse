@@ -76,6 +76,8 @@ export type Database = {
           id: string
           new_data: Json | null
           old_data: Json | null
+          reverted_at: string | null
+          reverted_by: string | null
           table_name: string
           target_user_id: string | null
         }
@@ -86,6 +88,8 @@ export type Database = {
           id?: string
           new_data?: Json | null
           old_data?: Json | null
+          reverted_at?: string | null
+          reverted_by?: string | null
           table_name: string
           target_user_id?: string | null
         }
@@ -96,6 +100,8 @@ export type Database = {
           id?: string
           new_data?: Json | null
           old_data?: Json | null
+          reverted_at?: string | null
+          reverted_by?: string | null
           table_name?: string
           target_user_id?: string | null
         }
@@ -463,6 +469,7 @@ export type Database = {
         Args: { _credential?: string; _user: string }
         Returns: Json
       }
+      admin_revert_change: { Args: { _log: string }; Returns: Json }
       clock_action: {
         Args: {
           _acc?: number
