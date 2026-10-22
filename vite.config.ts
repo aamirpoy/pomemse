@@ -12,4 +12,17 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    build: {
+      rollupOptions: {
+        output: {
+          // Keep the passkey libraries in their own chunk, with the reflect polyfill first,
+          // so shared helpers never pull tsyringe into every page.
+          manualChunks(id: string) {
+            if (/node_modules\/(reflect-metadata|tsyringe|@peculiar|@simplewebauthn|asn1js|pvtsutils|pvutils|@levischuck)\//.test(id)) return "webauthn";
+          },
+        },
+      },
+    },
+  },
 });
