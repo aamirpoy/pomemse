@@ -1,13 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { z } from "zod";
-import {
-  generateRegistrationOptions,
-  verifyRegistrationResponse,
-  generateAuthenticationOptions,
-  verifyAuthenticationResponse,
-} from "@simplewebauthn/server";
-import { isoBase64URL } from "@simplewebauthn/server/helpers";
+
+/** Loaded lazily inside handlers; the library needs the reflect polyfill on the edge runtime. */
+async function wa() {
+  await import("reflect-metadata");
+  const [server, helpers] = await Promise.all([
+    import("@simplewebauthn/server"),
+    import("@simplewebauthn/server/helpers"),
+  ]);
+  return { ...server, isoBase64URL: helpers.isoBase64URL };
+}
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /** Relying-party id + origin derived from the incoming request host. */
@@ -46,7 +49,7 @@ export const getBioRegistrationOptions = createServerFn({ method: "POST" })
     const { rpID } = rp();
     const db = await admin();
     const { data: existing } = await db.from("webauthn_credentials").select("credential_id, transports").eq("user_id", context.userId);
-    const options = await generateRegistrationOptions({
+    const options = await (await wa()).generateRegistrationOptions({
       rpName: "POME",
       rpID,
       userName: context.userId,
@@ -65,7 +68,7 @@ export const verifyBioRegistration = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { rpID, origin } = rp();
     const expectedChallenge = await takeChallenge(context.userId);
-    const { verified, registrationInfo } = await verifyRegistrationResponse({
+    const { verified, registrationInfo } = await (await wa()).verifyRegistrationResponse({
       response: data.response,
       expectedChallenge,
       expectedOrigin: origin,
@@ -78,7 +81,7 @@ export const verifyBioRegistration = createServerFn({ method: "POST" })
     const { error } = await db.from("webauthn_credentials").insert({
       user_id: context.userId,
       credential_id: credential.id,
-      public_key: isoBase64URL.fromBuffer(credential.publicKey),
+      public_key: (await wa()).isoBase64URL.fromBuffer(credential.publicKey),
       counter: credential.counter,
       transports: credential.transports ?? [],
       label: data.label || null,
@@ -94,7 +97,7 @@ export const getBioAuthOptions = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: creds } = await db.from("webauthn_credentials").select("credential_id, transports").eq("user_id", context.userId);
     if (!creds?.length) throw new Error("No face or fingerprint set up yet.");
-    const options = await generateAuthenticationOptions({
+    const options = await (await wa()).generateAuthenticationOptions({
       rpID,
       userVerification: "required",
       allowCredentials: creds.map((c) => ({ id: c.credential_id, transports: (c.transports ?? []) as any })),
@@ -114,7 +117,7 @@ export const verifyBioAuth = createServerFn({ method: "POST" })
     const db = await admin();
     const { data: cred } = await db.from("webauthn_credentials").select("*").eq("credential_id", credId).eq("user_id", context.userId).maybeSingle();
     if (!cred) throw new Error("This face or fingerprint is not registered.");
-    const { verified, authenticationInfo } = await verifyAuthenticationResponse({
+    const { verified, authenticationInfo } = await (await wa()).verifyAuthenticationResponse({
       response: data.response,
       expectedChallenge,
       expectedOrigin: origin,
@@ -122,7 +125,7 @@ export const verifyBioAuth = createServerFn({ method: "POST" })
       requireUserVerification: true,
       credential: {
         id: cred.credential_id,
-        publicKey: isoBase64URL.toBuffer(cred.public_key),
+        publicKey: (await wa()).isoBase64URL.toBuffer(cred.public_key),
         counter: Number(cred.counter),
         transports: (cred.transports ?? []) as any,
       },
