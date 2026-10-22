@@ -8,7 +8,9 @@
 - [ ] Arabic / English with RTL. Blocked: waiting for the owner's next testing step.
 - [ ] Audit log revert + soft delete. Blocked: waiting for the owner's next testing step.
 - [x] V4 Registered devices (admin approval per device) + V5 Face/fingerprint check-in; device gate verified end-to-end, both left off for everyone.
-- [ ] Admin passkey removal/reset with owner protection and audit history.
-- [ ] Explicit employee device registration and setup status, independent of location.
-- [ ] Diagnose and correct tester location failures without bypassing office checks.
-- [ ] Verify phone-change/setup flows and explain one-time setup.
+- [x] Admin passkey removal/reset with owner protection and sanitized audit history.
+- [x] Explicit employee device registration and setup status, independent of location; registered → pending → approved verified through UI.
+- [x] Investigate location rules; keep geofence unchanged and add admin Test my location to inspect saved office area and GPS accuracy.
+- [x] One-time setup and phone-change instructions in Devices; scope personal credential lookup to signed-in employee.
+- [ ] Reproduce affected tester's outside-office failure. Blocked: needs that phone's failing attempt; current saved office coordinates pass and no failed production punches were recorded.
+- [ ] Verify removal/re-enrollment using a real phone passkey. Blocked: simulated enrollment did not complete; admin controls render, but actual removal was not verified.
