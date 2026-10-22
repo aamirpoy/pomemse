@@ -2,6 +2,8 @@ export const FEATURE_VERSIONS = [
   { key: "device_security", version: "V1", name: "Device & IP checks", detail: "Phone, network and suspicious attendance alerts" },
   { key: "meeting_location", version: "V2", name: "Office-only meetings", detail: "Office location required when going out and returning" },
   { key: "admin_notes", version: "V3", name: "Admin edit notes", detail: "Employee can see notes attached to edited time records" },
+  { key: "device_approval", version: "V4", name: "Registered devices", detail: "Check-in only from devices an admin has approved" },
+  { key: "biometric_check", version: "V5", name: "Face / fingerprint check-in", detail: "Phone's face or fingerprint unlock required before check-in/out" },
 ] as const;
 
 export type FeatureKey = typeof FEATURE_VERSIONS[number]["key"];

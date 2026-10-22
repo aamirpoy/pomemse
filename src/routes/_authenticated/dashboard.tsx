@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import {
   fmtDate, fmtDuration, fmtTime, getPosition, workedMs, employeeTotalMs, type AttendanceRow,
 } from "@/lib/time";
 import { deviceInfo } from "@/lib/device";
+import { getBioRegistrationOptions, verifyBioRegistration, getBioAuthOptions, verifyBioAuth } from "@/lib/biometric.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -66,6 +68,39 @@ function Dashboard() {
     },
   });
 
+  const bioOn = versions.data?.includes("biometric_check") ?? false;
+  const deviceOn = (v: string) => v === "device_security" || v === "device_approval";
+  const bioCreds = useQuery({
+    queryKey: ["my-bio-creds", me?.id],
+    enabled: !!me && bioOn,
+    queryFn: async () => (await supabase.from("webauthn_credentials").select("id")).data ?? [],
+  });
+  const bioAuthOptions = useServerFn(getBioAuthOptions);
+  const bioAuthVerify = useServerFn(verifyBioAuth);
+  const bioRegOptions = useServerFn(getBioRegistrationOptions);
+  const bioRegVerify = useServerFn(verifyBioRegistration);
+
+  async function verifyBio() {
+    const { startAuthentication } = await import("@simplewebauthn/browser");
+    const options = await bioAuthOptions({});
+    const response = await startAuthentication({ optionsJSON: options });
+    await bioAuthVerify({ data: { response } });
+  }
+
+  async function setupBio() {
+    setBusy(true);
+    try {
+      const { startRegistration } = await import("@simplewebauthn/browser");
+      const options = await bioRegOptions({});
+      const response = await startRegistration({ optionsJSON: options });
+      await bioRegVerify({ data: { response, label: navigator.userAgent.slice(0, 80) } });
+      toast.success("Face / fingerprint set up on this device.");
+      qc.invalidateQueries({ queryKey: ["my-bio-creds"] });
+    } catch (e: any) {
+      toast.error(/cancel|abort|NotAllowed/i.test(e.message ?? e.name ?? "") ? "Setup cancelled." : e.message);
+    } finally { setBusy(false); }
+  }
+
   const open = records.data?.find((r) => !r.check_out_at);
   const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
   const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() - ((startOfDay.getDay() + 6) % 7));
@@ -93,7 +128,7 @@ function Dashboard() {
       const { data, error } = await supabase.rpc("outing_action", {
         ...(r ? { _reason: r } : {}),
         ...(pos ? { _lat: pos.coords.latitude, _lng: pos.coords.longitude, _acc: pos.coords.accuracy } : {}),
-        ...(versions.data?.includes("device_security") ? deviceInfo() : {}),
+        ...(versions.data?.some(deviceOn) ? deviceInfo() : {}),
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
@@ -109,9 +144,10 @@ function Dashboard() {
     setNoteOpen(false);
     setBusy(true);
     try {
+      if (bioOn) await verifyBio();
       const pos = await getPosition();
       const { latitude, longitude, accuracy } = pos.coords;
-      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...(versions.data?.includes("device_security") ? deviceInfo() : {}), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
+      const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, ...(versions.data?.some(deviceOn) ? deviceInfo() : {}), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
       const res = data as { action?: string; error?: string };
       if (res.error) throw new Error(res.error);
@@ -162,6 +198,15 @@ function Dashboard() {
         </DialogContent>
       </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+        {bioOn && bioCreds.data?.length === 0 && (
+          <section className="flex flex-wrap items-center gap-3 rounded-xl border border-primary bg-card p-5 shadow-soft">
+            <div className="min-w-56 flex-1">
+              <div className="font-semibold">Set up face / fingerprint</div>
+              <p className="text-sm text-muted-foreground">Your admin requires face or fingerprint verification at check-in. Set it up once on this device.</p>
+            </div>
+            <Button onClick={setupBio} disabled={busy}>Set up now</Button>
+          </section>
+        )}
         <section className="overflow-hidden rounded-2xl bg-hero p-8 text-primary-foreground shadow-soft md:p-12">
           <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-center">
             <div>

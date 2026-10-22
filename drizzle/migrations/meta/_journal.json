@@ -64,6 +64,13 @@
       "when": 1792664950610,
       "tag": "0008_restrict_rollout_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792668302713,
+      "tag": "0009_registered_devices_and_biometric",
+      "breakpoints": true
     }
   ]
 }

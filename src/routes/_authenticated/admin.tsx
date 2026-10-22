@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TestingVersions } from "@/components/admin/TestingVersions";
+import { Devices } from "@/components/admin/Devices";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -77,6 +78,7 @@ function AdminPage() {
             <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
             <TabsTrigger value="testing">Testing versions</TabsTrigger>
+            <TabsTrigger value="devices">Devices</TabsTrigger>
             <TabsTrigger value="office">Office</TabsTrigger>
             <TabsTrigger value="history">Change log</TabsTrigger>
             <TabsTrigger value="security">
@@ -88,6 +90,7 @@ function AdminPage() {
           <TabsContent value="timesheets"><Timesheets /></TabsContent>
           <TabsContent value="employees"><Employees selfId={me.id} /></TabsContent>
           <TabsContent value="testing"><TestingTab /></TabsContent>
+          <TabsContent value="devices"><DevicesTab selfId={me.id} /></TabsContent>
           <TabsContent value="office"><Office /></TabsContent>
           <TabsContent value="history"><HistoryTab /></TabsContent>
           <TabsContent value="security"><SecurityTab /></TabsContent>
@@ -114,6 +117,11 @@ function useAdminIds() {
 function TestingTab() {
   const { data = [] } = useProfiles();
   return <TestingVersions profiles={data} />;
+}
+
+function DevicesTab({ selfId }: { selfId: string }) {
+  const { data = [] } = useProfiles();
+  return <Devices profiles={data} selfId={selfId} />;
 }
 
 function Today() {
