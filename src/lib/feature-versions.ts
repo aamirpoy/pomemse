@@ -2,7 +2,7 @@ export const FEATURE_VERSIONS = [
   { key: "device_security", version: "V1", audience: "everyone", name: "Device & IP checks", detail: "Records phone, network and suspicious attendance alerts" },
   { key: "meeting_location", version: "V2", audience: "everyone", name: "Office-only meetings", detail: "Office location required when going out and returning" },
   { key: "admin_notes", version: "V3", audience: "everyone", name: "Admin edit notes", detail: "Employee sees notes attached to edited time records" },
-  { key: "device_approval", version: "V4", audience: "everyone", name: "Registered devices", detail: "Check-in only from devices an admin has approved" },
+  { key: "device_approval", version: "V4", audience: "everyone", name: "Registered devices", detail: "One account per registered browser; admin approval and removal required" },
   { key: "biometric_check", version: "V5", audience: "everyone", name: "Face / fingerprint check-in", detail: "Phone's face or fingerprint unlock required before check-in/out" },
   { key: "arabic_language", version: "V6", audience: "everyone", name: "Arabic / English", detail: "Switch My time to Arabic (right-to-left)" },
   { key: "change_undo", version: "V7", audience: "admin", name: "Undo in change log", detail: "Undo edits and restore deleted time records" },
