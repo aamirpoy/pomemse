@@ -16,3 +16,4 @@
 - Admin changes are recorded by DB triggers into `audit_log` (admin-read-only), so every edit path is logged without app code changes.
 - Employee totals use `employeeTotalMs`; admin reports use `totalMs` with an explicit break mode, keeping report-only deductions out of employee views.
 - Work outings: employee 'Going out for work' / 'Back in office' only via outing_action DB function; checkout auto-closes open outings. Why: keeps attendance writes server-controlled.
+- Every punch (check-in/out, meeting out/back) is logged with device ID, IP (from request headers) and flags by log_punch inside clock_action/outing_action; geofence failures return {error} instead of raising so the attempt is kept. Why: silent, server-side fraud detection.
