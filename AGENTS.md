@@ -17,3 +17,4 @@
 - Employee totals use `employeeTotalMs`; admin reports use `totalMs` with an explicit break mode, keeping report-only deductions out of employee views.
 - Work outings: employee 'Going out for work' / 'Back in office' only via outing_action DB function; checkout auto-closes open outings. Why: keeps attendance writes server-controlled.
 - Every punch (check-in/out, meeting out/back) is logged with device ID, IP (from request headers) and flags by log_punch inside clock_action/outing_action; geofence failures return {error} instead of raising so the attempt is kept. Why: silent, server-side fraud detection.
+- New features ship behind public.beta_testers (is_beta(uid) checked inside DB functions; admins toggle per employee). Why: owner tests on chosen staff before everyone.

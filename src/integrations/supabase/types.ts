@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       attendance: {
         Row: {
+          admin_note: string | null
+          admin_note_at: string | null
+          admin_note_by: string | null
           check_in_at: string
           check_in_distance_m: number | null
           check_in_lat: number | null
@@ -30,6 +33,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_note?: string | null
+          admin_note_at?: string | null
+          admin_note_by?: string | null
           check_in_at?: string
           check_in_distance_m?: number | null
           check_in_lat?: number | null
@@ -44,6 +50,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_note?: string | null
+          admin_note_at?: string | null
+          admin_note_by?: string | null
           check_in_at?: string
           check_in_distance_m?: number | null
           check_in_lat?: number | null
@@ -89,6 +98,21 @@ export type Database = {
           old_data?: Json | null
           table_name?: string
           target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      beta_testers: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -298,6 +322,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_beta: { Args: { _uid: string }; Returns: boolean }
       log_punch: {
         Args: {
           _acc: number

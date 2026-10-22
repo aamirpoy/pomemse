@@ -18,16 +18,16 @@ const toLocal = (iso: string | null) => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
-type Rec = { id?: string; user_id: string; check_in_at: string; check_out_at: string | null };
+type Rec = { id?: string; user_id: string; check_in_at: string; check_out_at: string | null; admin_note?: string | null };
 
 export function RecordDialog({ rec, profiles, trigger }: { rec?: Rec; profiles: { id: string; full_name: string }[]; trigger: React.ReactNode }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ user_id: "", inAt: "", outAt: "" });
+  const [f, setF] = useState({ user_id: "", inAt: "", outAt: "", note: "" });
 
   function onOpen(o: boolean) {
     setOpen(o);
-    if (o) setF({ user_id: rec?.user_id ?? profiles[0]?.id ?? "", inAt: toLocal(rec?.check_in_at ?? null), outAt: toLocal(rec?.check_out_at ?? null) });
+    if (o) setF({ user_id: rec?.user_id ?? profiles[0]?.id ?? "", inAt: toLocal(rec?.check_in_at ?? null), outAt: toLocal(rec?.check_out_at ?? null), note: rec?.admin_note ?? "" });
   }
 
   async function save(e: React.FormEvent) {
@@ -35,7 +35,7 @@ export function RecordDialog({ rec, profiles, trigger }: { rec?: Rec; profiles: 
     const inAt = new Date(f.inAt).toISOString();
     const outAt = f.outAt ? new Date(f.outAt).toISOString() : null;
     if (outAt && outAt <= inAt) { toast.error("Check-out must be after check-in"); return; }
-    const payload = { user_id: f.user_id, check_in_at: inAt, check_out_at: outAt };
+    const payload = { user_id: f.user_id, check_in_at: inAt, check_out_at: outAt, admin_note: f.note.trim() || null };
     const { error } = rec?.id
       ? await supabase.from("attendance").update(payload).eq("id", rec.id)
       : await supabase.from("attendance").insert(payload);
@@ -68,6 +68,11 @@ export function RecordDialog({ rec, profiles, trigger }: { rec?: Rec; profiles: 
           </div>
           <div className="space-y-1"><Label>Check in</Label><Input type="datetime-local" required value={f.inAt} onChange={(e) => setF({ ...f, inAt: e.target.value })} /></div>
           <div className="space-y-1"><Label>Check out (leave empty if still in)</Label><Input type="datetime-local" value={f.outAt} onChange={(e) => setF({ ...f, outAt: e.target.value })} /></div>
+          <div className="space-y-1">
+            <Label>Note for the employee (optional)</Label>
+            <textarea maxLength={500} rows={2} className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              placeholder="e.g. Forgot to check out, corrected to 6 pm" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+          </div>
           <div className="flex gap-2 pt-2">
             <Button type="submit">Save</Button>
             {rec?.id && <Button type="button" variant="destructive" onClick={remove}>Delete</Button>}

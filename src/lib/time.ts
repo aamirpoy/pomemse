@@ -1,6 +1,9 @@
 export type AttendanceRow = {
   id: string;
   user_id: string;
+  admin_note?: string | null;
+  admin_note_by?: string | null;
+  admin_note_at?: string | null;
   check_in_at: string;
   check_out_at: string | null;
   check_in_distance_m: number | null;
