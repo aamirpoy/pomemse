@@ -4,6 +4,6 @@
 - [x] Verify the updated pages and employee-hour calculation.- [x] Device & IP checks with silent security alerts (Security tab); fresh location required for meeting out/back.
 - [x] Tester switch per employee (new features only for testers).
 - [x] Admin notes on timesheet edits shown to employee (testers).
-- [ ] Named testing versions with independent per-employee and everyone access; verify saved settings.
+- [x] Named testing versions with independent per-employee and everyone access; verified saved settings and restored all versions off.
 - [ ] Arabic / English with RTL. Blocked: waiting for the owner's next testing step.
 - [ ] Audit log revert + soft delete. Blocked: waiting for the owner's next testing step.
