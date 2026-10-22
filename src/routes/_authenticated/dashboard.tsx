@@ -13,6 +13,7 @@ import {
   fmtDate, fmtDuration, fmtTime, getPosition, workedMs, employeeTotalMs, type AttendanceRow,
 } from "@/lib/time";
 import { deviceInfo } from "@/lib/device";
+import { LanguageProvider, useLang } from "@/lib/i18n";
 import { getBioRegistrationOptions, verifyBioRegistration, getBioAuthOptions, verifyBioAuth } from "@/lib/biometric.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -39,6 +40,26 @@ function useNow() {
 }
 
 function Dashboard() {
+  const { data: me } = useMe();
+  const versions = useQuery({
+    queryKey: ["my-feature-versions", me?.id],
+    enabled: !!me,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("my_feature_versions");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  return (
+    <LanguageProvider enabled={versions.data?.includes("arabic_language") ?? false}>
+      <DashboardBody />
+    </LanguageProvider>
+  );
+}
+
+function DashboardBody() {
+  const { t, locale } = useLang();
   const qc = useQueryClient();
   const { data: me } = useMe();
   const now = useNow();
@@ -89,9 +110,9 @@ function Dashboard() {
       const { data, error } = await supabase.rpc("register_my_device", deviceInfo());
       if (error) throw error;
       const status = (data as { status?: string })?.status;
-      toast.success(status === "approved" ? "This device is already approved." : "Device sent to your admin for approval.");
+      toast.success(t(status === "approved" ? "This device is already approved." : "Device sent to your admin for approval."));
       await Promise.all([myDevice.refetch(), qc.invalidateQueries({ queryKey: ["trusted-devices"] })]);
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { toast.error(t(e.message)); }
     finally { setBusy(false); }
   }
   const deviceOn = (v: string) => v === "device_security" || v === "device_approval";
@@ -125,10 +146,10 @@ function Dashboard() {
       const options = await bioRegOptions({});
       const response = await startRegistration({ optionsJSON: options });
       await bioRegVerify({ data: { response, label: navigator.userAgent.slice(0, 80) } });
-      toast.success("Face / fingerprint set up on this device.");
+      toast.success(t("Face / fingerprint set up on this device."));
       qc.invalidateQueries({ queryKey: ["my-bio-creds"] });
     } catch (e: any) {
-      toast.error(/cancel|abort|NotAllowed/i.test(e.message ?? e.name ?? "") ? "Setup cancelled." : e.message);
+      toast.error(/cancel|abort|NotAllowed/i.test(e.message ?? e.name ?? "") ? t("Setup cancelled.") : t(e.message));
     } finally { setBusy(false); }
   }
 
@@ -163,11 +184,11 @@ function Dashboard() {
       });
       if (error) throw error;
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-      toast.success(currentOut ? "Welcome back!" : "Marked as out for work. Your hours keep counting.");
+      toast.success(t(currentOut ? "Welcome back!" : "Marked as out for work. Your hours keep counting."));
       setOutOpen(false); setReason("");
       qc.invalidateQueries({ queryKey: ["my-outing"] });
     } catch (e: any) {
-      toast.error(e.message?.includes("denied") ? "Please allow location access." : e.message);
+      toast.error(e.message?.includes("denied") ? t("Please allow location access.") : t(e.message));
     } finally { setBusy(false); }
   }
 
@@ -183,11 +204,11 @@ function Dashboard() {
       if (error) throw error;
       const res = data as { action?: string; error?: string };
       if (res.error) throw new Error(res.error);
-      toast.success(res.action === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!");
+      toast.success(t(res.action === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!"));
       setNote("");
       qc.invalidateQueries({ queryKey: ["my-attendance"] });
     } catch (e: any) {
-      toast.error(e.message?.includes("denied") ? "Please allow location access to check in." : e.message);
+      toast.error(e.message?.includes("denied") ? t("Please allow location access to check in.") : t(e.message));
     } finally {
       setBusy(false);
     }
@@ -206,67 +227,67 @@ function Dashboard() {
       <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{open ? "Check out" : "Check in"}</DialogTitle>
-            <DialogDescription>Add a note if needed (e.g. reason for being late or leaving early). You can skip this.</DialogDescription>
+            <DialogTitle>{t(open ? "Check out" : "Check in")}</DialogTitle>
+            <DialogDescription>{t("Add a note if needed (e.g. reason for being late or leaving early). You can skip this.")}</DialogDescription>
           </DialogHeader>
-          <Textarea maxLength={500} placeholder="Optional note…" value={note} onChange={(e) => setNote(e.target.value)} />
+          <Textarea maxLength={500} placeholder={t("Optional note…")} value={note} onChange={(e) => setNote(e.target.value)} />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => clock()}>Skip</Button>
-            <Button onClick={() => clock(note)} disabled={!note.trim()}>Save note & {open ? "check out" : "check in"}</Button>
+            <Button variant="outline" onClick={() => clock()}>{t("Skip")}</Button>
+            <Button onClick={() => clock(note)} disabled={!note.trim()}>{t("Save note &")} {t(open ? "check out" : "check in")}</Button>
           </div>
         </DialogContent>
       </Dialog>
       <Dialog open={outOpen} onOpenChange={setOutOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Going out for work</DialogTitle>
-            <DialogDescription>Where are you going? (e.g. client meeting, site visit). Your hours keep counting.</DialogDescription>
+            <DialogTitle>{t("Going out for work")}</DialogTitle>
+            <DialogDescription>{t("Where are you going? (e.g. client meeting, site visit). Your hours keep counting.")}</DialogDescription>
           </DialogHeader>
-          <Textarea maxLength={500} placeholder="Reason…" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <Textarea maxLength={500} placeholder={t("Reason…")} value={reason} onChange={(e) => setReason(e.target.value)} />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOutOpen(false)}>Cancel</Button>
-            <Button onClick={() => toggleOuting(reason.trim())} disabled={!reason.trim() || busy}>Go out</Button>
+            <Button variant="outline" onClick={() => setOutOpen(false)}>{t("Cancel")}</Button>
+            <Button onClick={() => toggleOuting(reason.trim())} disabled={!reason.trim() || busy}>{t("Go out")}</Button>
           </div>
         </DialogContent>
       </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
         {approvalOn && <section className="flex flex-wrap items-center gap-3 border-y py-4">
-          <div className="min-w-0 flex-1"><div className="font-semibold">Registered device</div><div className="text-sm text-muted-foreground">{myDevice.isError ? "Could not load device approval." : myDevice.isPending ? "Checking approval…" : myDevice.data?.status === "approved" ? "Approved" : myDevice.data?.status === "pending" ? "Waiting for admin approval" : myDevice.data?.status === "rejected" ? "Blocked — contact your admin" : "Not registered"}</div></div>
-          {myDevice.isError ? <Button variant="outline" onClick={() => myDevice.refetch()}>Retry</Button> : !myDevice.isPending && !myDevice.data && <Button onClick={registerDevice} disabled={busy}>Register this device</Button>}
+          <div className="min-w-0 flex-1"><div className="font-semibold">{t("Registered device")}</div><div className="text-sm text-muted-foreground">{t(myDevice.isError ? "Could not load device approval." : myDevice.isPending ? "Checking approval…" : myDevice.data?.status === "approved" ? "Approved" : myDevice.data?.status === "pending" ? "Waiting for admin approval" : myDevice.data?.status === "rejected" ? "Blocked — contact your admin" : "Not registered")}</div></div>
+          {myDevice.isError ? <Button variant="outline" onClick={() => myDevice.refetch()}>{t("Retry")}</Button> : !myDevice.isPending && !myDevice.data && <Button onClick={registerDevice} disabled={busy}>{t("Register this device")}</Button>}
         </section>}
         {bioOn && bioCreds.data?.length === 0 && (
           <section className="flex flex-wrap items-center gap-3 rounded-xl border border-primary bg-card p-5 shadow-soft">
             <div className="min-w-56 flex-1">
-              <div className="font-semibold">Set up face / fingerprint</div>
-              <p className="text-sm text-muted-foreground">Your admin requires face or fingerprint verification at check-in. Set it up once on this device.</p>
+              <div className="font-semibold">{t("Set up face / fingerprint")}</div>
+              <p className="text-sm text-muted-foreground">{t("Your admin requires face or fingerprint verification at check-in. Set it up once on this device.")}</p>
             </div>
-            <Button onClick={setupBio} disabled={busy}>Set up now</Button>
+            <Button onClick={setupBio} disabled={busy}>{t("Set up now")}</Button>
           </section>
         )}
         <section className="overflow-hidden rounded-2xl bg-hero p-8 text-primary-foreground shadow-soft md:p-12">
           <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-center">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.25em] text-accent">
-                {new Date(now).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" })}
+                {new Date(now).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
               </p>
               <div className="mt-3 font-mono text-6xl tabular-nums md:text-7xl">
-                {new Date(now).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                {new Date(now).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </div>
               <p className="mt-4 text-lg opacity-85">
                 {open
-                  ? <>Checked in at <b>{fmtTime(open.check_in_at)}</b> · {fmtDuration(workedMs(open, now))} so far</>
-                  : <>Hi {me?.profile?.full_name?.split(" ")[0] || "there"}, you're not checked in.</>}
+                  ? <>{t("Checked in at")} <b>{fmtTime(open.check_in_at)}</b> · {fmtDuration(workedMs(open, now))} {t("so far")}</>
+                  : <>{t("Hi")} {me?.profile?.full_name?.split(" ")[0] || t("there")}, {t("you're not checked in.")}</>}
               </p>
               {open && (
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   {currentOut && (
                     <span className="text-sm opacity-85">
-                      Out for work since <b>{fmtTime(currentOut.out_at)}</b> · {fmtDuration(workedMs({ check_in_at: currentOut.out_at, check_out_at: null }, now))}
+                      {t("Out for work since")} <b>{fmtTime(currentOut.out_at)}</b> · {fmtDuration(workedMs({ check_in_at: currentOut.out_at, check_out_at: null }, now))}
                     </span>
                   )}
                   <Button variant="secondary" disabled={busy || outing.isLoading || versions.isPending || versions.isError}
                     onClick={() => (currentOut ? toggleOuting() : setOutOpen(true))}>
-                    {currentOut ? "Back in office" : "Going out for work / meeting"}
+                    {t(currentOut ? "Back in office" : "Going out for work / meeting")}
                   </Button>
                 </div>
               )}
@@ -278,8 +299,8 @@ function Dashboard() {
                 open ? "bg-primary-foreground text-primary" : "bg-accent text-accent-foreground animate-pulse-ring"
               }`}
             >
-              {busy ? <Loader2 className="h-8 w-8 animate-spin" /> : open ? "Check out" : "Check in"}
-              {busy && <span className="mt-1 text-xs font-normal opacity-70">Please wait…</span>}
+              {busy ? <Loader2 className="h-8 w-8 animate-spin" /> : t(open ? "Check out" : "Check in")}
+              {busy && <span className="mt-1 text-xs font-normal opacity-70">{t("Please wait…")}</span>}
             </Button>
           </div>
         </section>
@@ -291,28 +312,28 @@ function Dashboard() {
             ["Last 30 days", fmtDuration(sumSince(new Date(0)))],
           ].map(([l, v]) => (
             <div key={l} className="rounded-xl border bg-card p-5 shadow-soft">
-              <div className="text-sm text-muted-foreground">{l}</div>
+              <div className="text-sm text-muted-foreground">{t(l ?? "")}</div>
               <div className="mt-1 font-mono text-3xl">{v}</div>
             </div>
           ))}
         </section>
 
         <section className="rounded-xl border bg-card shadow-soft">
-          <h2 className="border-b px-5 py-4 text-xl">My timesheet</h2>
+          <h2 className="border-b px-5 py-4 text-xl">{t("My timesheet")}</h2>
           {byDay.size === 0 ? (
-            <p className="p-5 text-sm text-muted-foreground">No records yet. Check in when you arrive at the office.</p>
+            <p className="p-5 text-sm text-muted-foreground">{t("No records yet. Check in when you arrive at the office.")}</p>
           ) : (
             <ul className="divide-y">
               {[...byDay.entries()].map(([day, rows]) => (
                 <li key={day} className="flex flex-wrap items-center gap-4 px-5 py-3">
                   <span className="w-32 font-medium">{rows[0] ? fmtDate(rows[0].check_in_at) : day}</span>
                   <span className="flex-1 text-sm text-muted-foreground">
-                    {rows.slice().reverse().map((r) => `${fmtTime(r.check_in_at)} – ${r.check_out_at ? fmtTime(r.check_out_at) : "now"}`).join(", ")}
+                    {rows.slice().reverse().map((r) => `${fmtTime(r.check_in_at)} – ${r.check_out_at ? fmtTime(r.check_out_at) : t("now")}`).join(", ")}
                   </span>
                   <span className="font-mono">{fmtDuration(employeeTotalMs(rows, now))}</span>
                   {versions.data?.includes("admin_notes") && rows.filter((r) => r.admin_note).map((r) => (
                     <div key={r.id} className="w-full rounded-md bg-secondary px-3 py-2 text-sm">
-                      <span className="font-semibold">Note from {r.admin_note_by}</span>
+                      <span className="font-semibold">{t("Note from")} {r.admin_note_by}</span>
                       <span className="text-muted-foreground"> · {r.admin_note_at ? fmtDate(r.admin_note_at) : ""}</span>
                       <div>{r.admin_note}</div>
                     </div>
