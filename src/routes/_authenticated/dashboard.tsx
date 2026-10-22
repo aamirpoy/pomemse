@@ -327,7 +327,7 @@ function DashboardBody() {
               {[...byDay.entries()].map(([day, rows]) => (
                 <li key={day} className="flex flex-wrap items-center gap-4 px-5 py-3">
                   <span className="w-32 font-medium">{rows[0] ? fmtDate(rows[0].check_in_at) : day}</span>
-                  <span className="flex-1 text-sm text-muted-foreground">
+                  <span dir="ltr" className="flex-1 text-start text-sm text-muted-foreground">
                     {rows.slice().reverse().map((r) => `${fmtTime(r.check_in_at)} – ${r.check_out_at ? fmtTime(r.check_out_at) : t("now")}`).join(", ")}
                   </span>
                   <span className="font-mono">{fmtDuration(employeeTotalMs(rows, now))}</span>

@@ -5,8 +5,8 @@
 - [x] Tester switch per employee (new features only for testers).
 - [x] Admin notes on timesheet edits shown to employee (testers).
 - [x] Named testing versions with independent per-employee and everyone access; verified saved settings and restored all versions off.
-- [ ] Arabic / English with RTL. Blocked: waiting for the owner's next testing step.
-- [ ] Audit log revert + soft delete. Blocked: waiting for the owner's next testing step.
+- [x] Arabic / English with RTL (V6, employee page; off for everyone).
+- [x] Change log Undo / Restore deleted time records (V7, admins; off for everyone).
 - [x] V4 Registered devices (admin approval per device) + V5 Face/fingerprint check-in; device gate verified end-to-end, both left off for everyone.
 - [x] Admin passkey removal/reset with owner protection and sanitized audit history.
 - [x] Explicit employee device registration and setup status, independent of location; registered → pending → approved verified through UI.
