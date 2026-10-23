@@ -19,3 +19,4 @@
 - [x] Fix the reproduced PostgreSQL array-flag error that rolled back outside attempts; use array_append for every security flag and keep a regression check.
 - [ ] Verify removal/re-enrollment using a real phone passkey. Blocked: simulated enrollment did not complete; admin controls render, but actual removal was not verified.
 - [x] Fresh location on every punch: client re-reads GPS and rejects stale fixes; server re-checks fix age (60s) and accuracy (150m) with stale_location/low_accuracy security flags
+- [ ] Investigate Load failed errors; add safe connection recovery and verify without repeating attendance writes.
