@@ -27,6 +27,7 @@ const AR: Record<string, string> = {
   "Blocked — contact your admin": "محظور — تواصل مع المسؤول",
   "Not registered": "غير مسجل",
   "Retry": "إعادة المحاولة",
+  "Connection interrupted. Check your internet, then refresh to confirm the latest status before trying again.": "انقطع الاتصال. تحقق من الإنترنت، ثم حدّث الصفحة للتأكد من الحالة الحالية قبل المحاولة مرة أخرى.",
   "Register this device": "تسجيل هذا الجهاز",
   "Set up face / fingerprint": "إعداد الوجه / البصمة",
   "Your admin requires face or fingerprint verification at check-in. Set it up once on this device.": "يتطلب المسؤول التحقق بالوجه أو البصمة عند تسجيل الدخول. قم بإعداده مرة واحدة على هذا الجهاز.",

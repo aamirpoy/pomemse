@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
+import { toast } from "@/lib/app-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { bootstrapAdmin, getSetupStatus } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ function AuthPage() {
       (await import("@/lib/session-expiry")).markLogin();
       navigate({ to: "/dashboard", replace: true });
     } catch (err: any) {
-      toast.error(err.message ?? "Sign in failed");
+      toast.error(err);
     } finally {
       setBusy(false);
     }

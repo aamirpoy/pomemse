@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/app-toast";
 import { ShieldCheck, Users, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FEATURE_VERSIONS, eligibleFor, hasVersionAccess, type FeatureKey } from "@/lib/feature-versions";
@@ -58,7 +58,7 @@ export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; ad
         qc.invalidateQueries({ queryKey: ["my-feature-versions"] }),
       ]);
       toast.success("Saved");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not save"); }
+    } catch (e) { toast.error(e); }
     finally { setBusy(false); }
   }
 
