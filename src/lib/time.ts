@@ -31,7 +31,10 @@ export const fmtTime = (iso: string | null) =>
 export const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
 
-export function getPosition(): Promise<GeolocationPosition> {
+/** A GPS fix older than this is treated as stale and re-read. */
+export const LOCATION_FRESH_MS = 15000;
+
+function readPosition(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error("Location is not supported on this device"));
     navigator.geolocation.getCurrentPosition(resolve, (e) => reject(new Error(e.message)), {
@@ -40,6 +43,17 @@ export function getPosition(): Promise<GeolocationPosition> {
       maximumAge: 0,
     });
   });
+}
+
+const isStale = (p: GeolocationPosition) =>
+  typeof p.timestamp === "number" && Date.now() - p.timestamp > LOCATION_FRESH_MS;
+
+/** Fresh, high-accuracy GPS read. Retries once if the phone hands back a cached fix; rejects if still stale. */
+export async function getPosition(): Promise<GeolocationPosition> {
+  let pos = await readPosition();
+  if (isStale(pos)) pos = await readPosition();
+  if (isStale(pos)) throw new Error("Could not get a fresh location. Please check your GPS and try again.");
+  return pos;
 }
 
 export function distanceM(lat1: number, lng1: number, lat2: number, lng2: number) {

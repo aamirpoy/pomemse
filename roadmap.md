@@ -18,3 +18,4 @@
 - [x] Signed-in UI verification: register → pending → approve → check in → outside checkout rejected at 25,275 m → Security alert → inside checkout succeeds. Registered punches have no new-device flag; binding reassignment is rejected. Temporary attendance/device removed and feature choices restored.
 - [x] Fix the reproduced PostgreSQL array-flag error that rolled back outside attempts; use array_append for every security flag and keep a regression check.
 - [ ] Verify removal/re-enrollment using a real phone passkey. Blocked: simulated enrollment did not complete; admin controls render, but actual removal was not verified.
+- [x] Fresh location on every punch: client re-reads GPS and rejects stale fixes; server re-checks fix age (60s) and accuracy (150m) with stale_location/low_accuracy security flags
