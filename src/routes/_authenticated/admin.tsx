@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/app-toast";
 import { Download, Trash2, KeyRound, Pencil, Plus } from "lucide-react";
 import { Analytics } from "@/components/admin/Analytics";
 import { AuditLog } from "@/components/admin/AuditLog";

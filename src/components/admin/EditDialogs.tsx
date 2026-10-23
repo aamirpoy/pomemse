@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
+import { toast } from "@/lib/app-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { setAdminRole } from "@/lib/admin.functions";
 import { useMe } from "@/components/AppHeader";

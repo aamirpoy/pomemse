@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/app-toast";
+import { requestErrorMessage } from "@/lib/request-errors";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader, useMe } from "@/components/AppHeader";
@@ -71,9 +72,10 @@ function DashboardBody() {
     queryFn: async () => {
       if (!me) return [];
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("attendance").select("*").eq("user_id", me.id)
         .gte("check_in_at", since).order("check_in_at", { ascending: false });
+      if (error) throw error;
       return (data ?? []) as AttendanceRow[];
     },
   });
@@ -113,7 +115,7 @@ function DashboardBody() {
       if (result.error) throw new Error(result.error);
       toast.success(t(result.status === "approved" ? "This device is already approved." : result.status === "rejected" ? "This device is blocked. Please contact your admin." : "Device sent to your admin for approval."));
       await Promise.all([myDevice.refetch(), qc.invalidateQueries({ queryKey: ["trusted-devices"] })]);
-    } catch (e: any) { toast.error(t(e.message)); }
+    } catch (e: unknown) { toast.error(t(requestErrorMessage(e))); }
     finally { setBusy(false); }
   }
   const bioCreds = useQuery({
@@ -149,7 +151,7 @@ function DashboardBody() {
       toast.success(t("Face / fingerprint set up on this device."));
       qc.invalidateQueries({ queryKey: ["my-bio-creds"] });
     } catch (e: any) {
-      toast.error(/cancel|abort|NotAllowed/i.test(e.message ?? e.name ?? "") ? t("Setup cancelled.") : t(e.message));
+      toast.error(/cancel|abort|NotAllowed/i.test(e.message ?? e.name ?? "") ? t("Setup cancelled.") : t(requestErrorMessage(e)));
     } finally { setBusy(false); }
   }
 
@@ -167,7 +169,9 @@ function DashboardBody() {
     enabled: !!open,
     queryFn: async () => {
       if (!open) return [];
-      return (await supabase.from("work_outings").select("*").eq("attendance_id", open.id).order("out_at")).data ?? [];
+      const { data, error } = await supabase.from("work_outings").select("*").eq("attendance_id", open.id).order("out_at");
+      if (error) throw error;
+      return data ?? [];
     },
   });
   const currentOut = outing.data?.find((o) => !o.back_at);
@@ -188,7 +192,7 @@ function DashboardBody() {
       setOutOpen(false); setReason("");
       qc.invalidateQueries({ queryKey: ["my-outing"] });
     } catch (e: any) {
-      toast.error(e.message?.includes("denied") ? t("Please allow location access.") : t(e.message));
+      toast.error(e.message?.includes("denied") ? t("Please allow location access.") : t(requestErrorMessage(e)));
     } finally { setBusy(false); }
   }
 
@@ -198,7 +202,7 @@ function DashboardBody() {
     try {
       if (approvalOn) {
         const latest = await myDevice.refetch();
-        if (latest.error) throw new Error("Could not load device approval.");
+        if (latest.error) throw latest.error;
         if (!latest.data) { await registerDevice(); return; }
         if (latest.data.status !== "approved") throw new Error(latest.data.status === "rejected" ? "This device is blocked. Please contact your admin." : "This device is waiting for admin approval.");
       }
@@ -213,7 +217,8 @@ function DashboardBody() {
       setNote("");
       qc.invalidateQueries({ queryKey: ["my-attendance"] });
     } catch (e: any) {
-      toast.error(e.message?.includes("denied") ? t("Please allow location access to check in.") : t(e.message));
+      toast.error(e.message?.includes("denied") ? t("Please allow location access to check in.") : t(requestErrorMessage(e)));
+      await Promise.all([records.refetch(), outing.refetch()]);
     } finally {
       setBusy(false);
     }
@@ -256,6 +261,10 @@ function DashboardBody() {
         </DialogContent>
       </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+        {(records.isError || versions.isError || outing.isError) && <div role="alert" className="flex flex-wrap items-center gap-3 border-y py-4 text-destructive">
+          <span className="min-w-0 flex-1">{t(requestErrorMessage(records.error ?? versions.error ?? outing.error))}</span>
+          <Button variant="outline" onClick={() => Promise.all([records.refetch(), versions.refetch(), ...(open ? [outing.refetch()] : [])])}>{t("Retry")}</Button>
+        </div>}
         {approvalOn && <section className="flex flex-wrap items-center gap-3 border-y py-4">
           <div className="min-w-0 flex-1"><div className="font-semibold">{t("Registered device")}</div><div className="text-sm text-muted-foreground">{t(myDevice.isError ? "Could not load device approval." : myDevice.isPending ? "Checking approval…" : myDevice.data?.status === "approved" ? "Approved" : myDevice.data?.status === "pending" ? "Waiting for admin approval" : myDevice.data?.status === "rejected" ? "Blocked — contact your admin" : "Not registered")}</div></div>
           {myDevice.isError ? <Button variant="outline" onClick={() => myDevice.refetch()}>{t("Retry")}</Button> : !myDevice.isPending && !myDevice.data && <Button onClick={registerDevice} disabled={busy}>{t("Register this device")}</Button>}
@@ -290,7 +299,7 @@ function DashboardBody() {
                       {t("Out for work since")} <b>{fmtTime(currentOut.out_at)}</b> · {fmtDuration(workedMs({ check_in_at: currentOut.out_at, check_out_at: null }, now))}
                     </span>
                   )}
-                  <Button variant="secondary" disabled={busy || outing.isLoading || versions.isPending || versions.isError}
+                  <Button variant="secondary" disabled={busy || records.isError || outing.isError || outing.isLoading || versions.isPending || versions.isError}
                     onClick={() => (currentOut ? toggleOuting() : setOutOpen(true))}>
                     {t(currentOut ? "Back in office" : "Going out for work / meeting")}
                   </Button>
@@ -299,7 +308,7 @@ function DashboardBody() {
             </div>
             <Button
               onClick={() => setNoteOpen(true)}
-              disabled={busy || records.isLoading || versions.isPending || versions.isError}
+              disabled={busy || records.isLoading || records.isError || versions.isPending || versions.isError}
               className={`flex h-44 w-44 shrink-0 flex-col items-center justify-center rounded-full text-lg font-semibold transition-transform active:scale-95 disabled:opacity-60 ${
                 open ? "bg-primary-foreground text-primary" : "bg-accent text-accent-foreground animate-pulse-ring"
               }`}
