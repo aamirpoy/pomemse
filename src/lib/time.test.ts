@@ -16,13 +16,32 @@ describe("timesheet rules", () => {
     expect(Math.round(d)).toBe(111);
   });
   it("uses fresh high-accuracy GPS instead of a cached phone location", async () => {
-    const position = { coords: { latitude: 24.5333726, longitude: 54.5299175, accuracy: 12 } } as GeolocationPosition;
+    const position = { coords: { latitude: 24.5333726, longitude: 54.5299175, accuracy: 12 }, timestamp: Date.now() } as GeolocationPosition;
     const acquire = vi.fn((success: PositionCallback) => success(position));
     vi.stubGlobal("navigator", { geolocation: { getCurrentPosition: acquire } });
     try {
       expect(await getPosition()).toBe(position);
       expect(acquire.mock.calls[0]?.length).toBe(3);
       expect(acquire).toHaveBeenCalledWith(expect.any(Function), expect.any(Function), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it("re-reads the GPS when the phone hands back an old cached fix", async () => {
+    const stale = { coords: { latitude: 24.53, longitude: 54.52, accuracy: 10 }, timestamp: Date.now() - 60000 } as GeolocationPosition;
+    const fresh = { coords: { latitude: 24.5333726, longitude: 54.5299175, accuracy: 12 }, timestamp: Date.now() } as GeolocationPosition;
+    const acquire = vi.fn((success: PositionCallback) => success(acquire.mock.calls.length === 1 ? stale : fresh));
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition: acquire } });
+    try {
+      expect(await getPosition()).toBe(fresh);
+      expect(acquire).toHaveBeenCalledTimes(2);
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it("refuses to punch with a location the phone cannot refresh", async () => {
+    const stale = { coords: { latitude: 24.53, longitude: 54.52, accuracy: 10 }, timestamp: Date.now() - 60000 } as GeolocationPosition;
+    const acquire = vi.fn((success: PositionCallback) => success(stale));
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition: acquire } });
+    try {
+      await expect(getPosition()).rejects.toThrow("fresh location");
+      expect(acquire).toHaveBeenCalledTimes(2);
     } finally { vi.unstubAllGlobals(); }
   });
   it("the recorded office punch is inside while distant coordinates stay outside", () => {
