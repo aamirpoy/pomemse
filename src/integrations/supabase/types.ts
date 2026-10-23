@@ -473,6 +473,7 @@ export type Database = {
       clock_action: {
         Args: {
           _acc?: number
+          _captured_at?: number
           _device?: string
           _lat: number
           _lng: number
@@ -503,6 +504,7 @@ export type Database = {
           _action: string
           _device: string
           _dist: number
+          _extra?: string[]
           _lat: number
           _lng: number
           _ok: boolean
@@ -514,6 +516,7 @@ export type Database = {
       outing_action: {
         Args: {
           _acc?: number
+          _captured_at?: number
           _device?: string
           _lat?: number
           _lng?: number
