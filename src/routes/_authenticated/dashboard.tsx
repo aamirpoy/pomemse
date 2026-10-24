@@ -181,6 +181,14 @@ function DashboardBody() {
   const currentOut = outing.data?.find((o) => !o.back_at);
   const [outOpen, setOutOpen] = useState(false);
   const [reason, setReason] = useState("");
+  async function actionPosition(action: "check_in" | "check_out" | "meeting_out" | "meeting_back") {
+    try { return await getPosition(); }
+    catch (error) {
+      // Best-effort event only: never replay or record an attendance write.
+      try { await supabase.rpc("report_location_failure", { _action: action, ...deviceInfo() }); } catch { /* Offline: no server can receive this attempt. */ }
+      throw error;
+    }
+  }
   async function toggleOuting(r?: string) {
     if (actionLock.current) return;
     actionLock.current = true;
@@ -189,7 +197,7 @@ function DashboardBody() {
     toast.dismiss();
     try {
       const expected = currentOut ? "back" : "out";
-      const pos = await getPosition();
+      const pos = await actionPosition(expected === "out" ? "meeting_out" : "meeting_back");
       const { data, error } = await supabase.rpc("outing_action", {
         ...(r ? { _reason: r } : {}),
         _lat: pos.coords.latitude, _lng: pos.coords.longitude, _acc: pos.coords.accuracy, _captured_at: pos.timestamp,
@@ -221,7 +229,7 @@ function DashboardBody() {
     try {
       const expected = open ? "check_out" : "check_in";
       if (bioOn) await verifyBio();
-      const pos = await getPosition();
+      const pos = await actionPosition(expected);
       const { latitude, longitude, accuracy } = pos.coords;
       const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, _captured_at: pos.timestamp, ...deviceInfo(), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;

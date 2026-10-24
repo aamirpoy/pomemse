@@ -23,6 +23,7 @@ const FLAG_LABEL: Record<string, string> = {
   biometric_required: "Face / fingerprint not verified",
   not_checked_in: "Not checked in",
   missing_reason: "Work outing reason missing",
+  location_unavailable: "Phone could not provide a fresh location",
 };
 const ACTION_LABEL: Record<string, string> = {
   check_in: "Check in", check_out: "Check out", meeting_out: "Going out", meeting_back: "Back in office",
