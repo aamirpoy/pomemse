@@ -20,8 +20,8 @@
 - [ ] Verify removal/re-enrollment using a real phone passkey. Blocked: simulated enrollment did not complete; admin controls render, but actual removal was not verified.
 - [x] Fresh location on every punch: client re-reads GPS and rejects stale fixes; server re-checks fix age (60s) and accuracy (150m) with stale_location/low_accuracy security flags
 - [x] Investigate Load failed errors; normalize interrupted requests across action messages, expose failed attendance reads with Retry, and block punches until status recovers. Signed-in interrupted-read → retry → real records verified with zero writes; 31 tests pass. Exact affected user's network cause is not identifiable in available logs.
-- [ ] Require a new location on all four attendance actions; investigate unknown/stale errors and verify server checks.
-- [ ] Show confirmed success, blocked and unconfirmed results without misleading green messages.
-- [ ] Record inside-office shared-network attempts silently and show the other workers' names.
-- [ ] Add admin single/bulk cleanup with preview, confirmation and protected active records.
-- [ ] Explain/group testing updates without changing existing access; explain VPN limitations.
+- [x] Require new location on all four actions for everyone; reject pre-click, invalid and future fixes; server rejects missing/older-than-30s fixes and invalid accuracy. Missing device/time parameters found in older-page attempts; refresh guidance added.
+- [x] Confirm success through saved action/record/time and authorized read-back; lock concurrent taps and dismiss older toasts. All four actions verified signed-in; outside checkout blocked with distance and no saved attendance.
+- [x] Persist matched account IDs for silent shared-network alerts; inside-office attendance permitted and Tester 1 name verified in Security.
+- [x] Admin cleanup for security events, completed attendance/outings and old audit entries; single and bulk confirmation tested using only temporary records. No existing employee data deleted; temporary attendance/outings/events removed.
+- [x] Group testing versions and explain universal attendance safeguards versus optional identity protection without changing assignments. VPN blocking not added: IP alone cannot identify VPNs reliably, browser GPS is not tamper-proof and exact physical location cannot be guaranteed.
