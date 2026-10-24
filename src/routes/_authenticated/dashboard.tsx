@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "@/lib/app-toast";
 import { requestErrorMessage } from "@/lib/request-errors";
 import { Loader2 } from "lucide-react";
@@ -14,6 +14,7 @@ import {
   fmtDate, fmtDuration, fmtTime, getPosition, workedMs, employeeTotalMs, type AttendanceRow,
 } from "@/lib/time";
 import { deviceInfo } from "@/lib/device";
+import { confirmedPunch } from "@/lib/punch-result";
 import { LanguageProvider, useLang } from "@/lib/i18n";
 import { getBioRegistrationOptions, verifyBioRegistration, getBioAuthOptions, verifyBioAuth } from "@/lib/biometric.functions";
 
@@ -65,6 +66,8 @@ function DashboardBody() {
   const { data: me } = useMe();
   const now = useNow();
   const [busy, setBusy] = useState(false);
+  const actionLock = useRef(false);
+  const [feedback, setFeedback] = useState<{ ok: boolean; message: string }>();
 
   const records = useQuery({
     queryKey: ["my-attendance", me?.id],
@@ -113,7 +116,8 @@ function DashboardBody() {
       if (error) throw error;
       const result = data as { status?: string; error?: string };
       if (result.error) throw new Error(result.error);
-      toast.success(t(result.status === "approved" ? "This device is already approved." : result.status === "rejected" ? "This device is blocked. Please contact your admin." : "Device sent to your admin for approval."));
+      if (result.status === "rejected") throw new Error("This device is blocked. Please contact your admin.");
+      toast.success(t(result.status === "approved" ? "This device is already approved." : "Device sent to your admin for approval."));
       await Promise.all([myDevice.refetch(), qc.invalidateQueries({ queryKey: ["trusted-devices"] })]);
     } catch (e: unknown) { toast.error(t(requestErrorMessage(e))); }
     finally { setBusy(false); }
@@ -177,50 +181,72 @@ function DashboardBody() {
   const currentOut = outing.data?.find((o) => !o.back_at);
   const [outOpen, setOutOpen] = useState(false);
   const [reason, setReason] = useState("");
+  async function actionPosition(action: "check_in" | "check_out" | "meeting_out" | "meeting_back") {
+    try { return await getPosition(); }
+    catch (error) {
+      // Best-effort event only: never replay or record an attendance write.
+      try { await supabase.rpc("report_location_failure", { _action: action, ...deviceInfo() }); } catch { /* Offline: no server can receive this attempt. */ }
+      throw error;
+    }
+  }
   async function toggleOuting(r?: string) {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setBusy(true);
+    setFeedback(undefined);
+    toast.dismiss();
     try {
-      const pos = versions.data?.includes("meeting_location") || versions.data?.includes("device_security") ? await getPosition() : undefined;
+      const expected = currentOut ? "back" : "out";
+      const pos = await actionPosition(expected === "out" ? "meeting_out" : "meeting_back");
       const { data, error } = await supabase.rpc("outing_action", {
         ...(r ? { _reason: r } : {}),
-        ...(pos ? { _lat: pos.coords.latitude, _lng: pos.coords.longitude, _acc: pos.coords.accuracy, _captured_at: pos.timestamp } : {}),
+        _lat: pos.coords.latitude, _lng: pos.coords.longitude, _acc: pos.coords.accuracy, _captured_at: pos.timestamp,
         ...deviceInfo(),
       });
       if (error) throw error;
-      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-      toast.success(t(currentOut ? "Welcome back!" : "Marked as out for work. Your hours keep counting."));
+      const res = confirmedPunch(data, expected);
+      const saved = await supabase.from("work_outings").select("id,back_at").eq("id", res.recordId).single();
+      if (saved.error || !saved.data || (expected === "back" ? !saved.data.back_at : !!saved.data.back_at)) throw new Error("Result not confirmed. Refresh to check your status before trying again.");
+      const message = t(expected === "back" ? "Welcome back!" : "Marked as out for work. Your hours keep counting.");
+      setFeedback({ ok: true, message });
+      toast.success(message);
       setOutOpen(false); setReason("");
-      qc.invalidateQueries({ queryKey: ["my-outing"] });
+      await qc.invalidateQueries({ queryKey: ["my-outing"] });
     } catch (e: any) {
-      toast.error(e.message?.includes("denied") ? t("Please allow location access.") : t(requestErrorMessage(e)));
-    } finally { setBusy(false); }
+      const message = e.message?.includes("denied") ? t("Please allow location access.") : t(requestErrorMessage(e));
+      setFeedback({ ok: false, message }); toast.error(message);
+      await Promise.all([records.refetch(), outing.refetch()]);
+    } finally { setBusy(false); actionLock.current = false; }
   }
 
   async function clock(withNote?: string) {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setNoteOpen(false);
     setBusy(true);
+    setFeedback(undefined);
+    toast.dismiss();
     try {
-      if (approvalOn) {
-        const latest = await myDevice.refetch();
-        if (latest.error) throw latest.error;
-        if (!latest.data) { await registerDevice(); return; }
-        if (latest.data.status !== "approved") throw new Error(latest.data.status === "rejected" ? "This device is blocked. Please contact your admin." : "This device is waiting for admin approval.");
-      }
+      const expected = open ? "check_out" : "check_in";
       if (bioOn) await verifyBio();
-      const pos = await getPosition();
+      const pos = await actionPosition(expected);
       const { latitude, longitude, accuracy } = pos.coords;
       const { data, error } = await supabase.rpc("clock_action", { _lat: latitude, _lng: longitude, _acc: accuracy, _captured_at: pos.timestamp, ...deviceInfo(), ...(withNote?.trim() ? { _note: withNote.trim() } : {}) });
       if (error) throw error;
-      const res = data as { action?: string; error?: string };
-      if (res.error) throw new Error(res.error);
-      toast.success(t(res.action === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!"));
+      const res = confirmedPunch(data, expected);
+      const saved = await supabase.from("attendance").select("id,check_out_at").eq("id", res.recordId).single();
+      if (saved.error || !saved.data || (expected === "check_out" ? !saved.data.check_out_at : !!saved.data.check_out_at)) throw new Error("Result not confirmed. Refresh to check your status before trying again.");
+      const message = t(expected === "check_in" ? "Checked in. Have a good day!" : "Checked out. See you next time!");
+      setFeedback({ ok: true, message }); toast.success(message);
       setNote("");
-      qc.invalidateQueries({ queryKey: ["my-attendance"] });
+      await qc.invalidateQueries({ queryKey: ["my-attendance"] });
     } catch (e: any) {
-      toast.error(e.message?.includes("denied") ? t("Please allow location access to check in.") : t(requestErrorMessage(e)));
+      const message = e.message?.includes("denied") ? t("Please allow location access to check in.") : t(requestErrorMessage(e));
+      setFeedback({ ok: false, message }); toast.error(message);
       await Promise.all([records.refetch(), outing.refetch()]);
     } finally {
       setBusy(false);
+      actionLock.current = false;
     }
   }
 
@@ -242,8 +268,8 @@ function DashboardBody() {
           </DialogHeader>
           <Textarea maxLength={500} placeholder={t("Optional note…")} value={note} onChange={(e) => setNote(e.target.value)} />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => clock()}>{t("Skip")}</Button>
-            <Button onClick={() => clock(note)} disabled={!note.trim()}>{t("Save note &")} {t(open ? "check out" : "check in")}</Button>
+            <Button variant="outline" disabled={busy} onClick={() => clock()}>{t("Skip")}</Button>
+            <Button onClick={() => clock(note)} disabled={!note.trim() || busy}>{t("Save note &")} {t(open ? "check out" : "check in")}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -261,6 +287,11 @@ function DashboardBody() {
         </DialogContent>
       </Dialog>
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+        {feedback && <div role="status" className={`border-l-4 p-4 ${feedback.ok ? "border-success bg-success/10" : "border-destructive bg-destructive/10"}`}>
+          <div className="font-semibold">{feedback.ok ? t("Saved") : t("Not confirmed — check your status")}</div>
+          <p className="mt-1 text-sm">{feedback.message}</p>
+          {!feedback.ok && <Button variant="outline" className="mt-3" onClick={() => window.location.reload()}>{t("Refresh")}</Button>}
+        </div>}
         {(records.isError || versions.isError || outing.isError) && <div role="alert" className="flex flex-wrap items-center gap-3 border-y py-4 text-destructive">
           <span className="min-w-0 flex-1">{t(requestErrorMessage(records.error ?? versions.error ?? outing.error))}</span>
           <Button variant="outline" onClick={() => Promise.all([records.refetch(), versions.refetch(), ...(open ? [outing.refetch()] : [])])}>{t("Retry")}</Button>

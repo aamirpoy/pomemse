@@ -245,6 +245,7 @@ export type Database = {
           ip: string | null
           lat: number | null
           lng: number | null
+          shared_ip_users: string[]
           status: string
           success: boolean
           user_agent: string | null
@@ -262,6 +263,7 @@ export type Database = {
           ip?: string | null
           lat?: number | null
           lng?: number | null
+          shared_ip_users?: string[]
           status?: string
           success?: boolean
           user_agent?: string | null
@@ -279,6 +281,7 @@ export type Database = {
           ip?: string | null
           lat?: number | null
           lng?: number | null
+          shared_ip_users?: string[]
           status?: string
           success?: boolean
           user_agent?: string | null
@@ -465,6 +468,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_cleanup_records: {
+        Args: { _ids: string[]; _kind: string; _preview?: boolean }
+        Returns: Json
+      }
       admin_reset_passkeys: {
         Args: { _credential?: string; _user: string }
         Returns: Json
@@ -532,6 +539,10 @@ export type Database = {
       register_my_device: {
         Args: { _device: string; _ua?: string }
         Returns: Json
+      }
+      report_location_failure: {
+        Args: { _action: string; _device?: string; _ua?: string }
+        Returns: undefined
       }
       set_version_everyone: {
         Args: { _enabled: boolean; _feature: string }

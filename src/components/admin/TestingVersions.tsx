@@ -31,7 +31,7 @@ export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; ad
   });
   const access = settings.data?.access ?? [];
   const rollouts = settings.data?.rollouts ?? [];
-  const v = FEATURE_VERSIONS.find((x) => x.key === selected)!;
+  const v = FEATURE_VERSIONS.find((x) => x.key === selected) ?? FEATURE_VERSIONS[0];
   const adminOnly = v.audience === "admin";
   const groupLabel = adminOnly ? "all admins" : "everyone";
 
@@ -73,6 +73,10 @@ export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; ad
         <p className="text-sm text-muted-foreground">Pick an update, then choose who gets it. Nothing changes for anyone until you switch it on.</p>
       </div>
       {settings.isError && <div className="flex items-center gap-3 text-destructive">Could not load settings.<Button variant="outline" onClick={() => settings.refetch()}>Retry</Button></div>}
+      <section className="border-y py-4 text-sm">
+        <h3 className="font-semibold">Attendance reliability · active for everyone</h3>
+        <p className="mt-1 text-muted-foreground">Fresh location for each action, location checks on the server, clear saved / blocked results, and silent security records. Device registration is not required unless V4 is enabled.</p>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <nav className="space-y-2" aria-label="Updates">
@@ -80,8 +84,10 @@ export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; ad
             const st = stats(x.key, x.audience);
             const active = x.key === selected;
             return (
-              <button key={x.key} type="button" onClick={() => { setSelected(x.key); setSearch(""); }}
-                className={`w-full rounded-lg border p-3 text-left transition-colors ${active ? "border-primary bg-primary/5" : "bg-card hover:bg-secondary"}`}>
+              <div key={x.key}>
+              {(x.version === "V1" || x.version === "V3" || x.version === "V4" || x.version === "V6" || x.version === "V7") && <h3 className="px-1 pb-2 pt-3 text-xs font-semibold uppercase text-muted-foreground">{x.version === "V1" ? "Location & monitoring" : x.version === "V3" ? "Employee notes" : x.version === "V4" ? "Identity protection · optional" : x.version === "V6" ? "Language" : "Admin recovery"}</h3>}
+              <Button key={x.key} type="button" variant="outline" onClick={() => { setSelected(x.key); setSearch(""); }}
+                className={`h-auto w-full flex-col items-stretch whitespace-normal rounded-lg border p-3 text-left transition-colors ${active ? "border-primary bg-primary/5" : "bg-card hover:bg-secondary"}`}>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs text-primary">{x.version}</span>
                   <span className="font-medium">{x.name}</span>
@@ -90,7 +96,8 @@ export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; ad
                   {x.audience === "admin" ? <><ShieldCheck className="size-3.5" /> Admins only</> : <><Users className="size-3.5" /> All staff</>}
                   <span className="ms-auto">{settings.isPending ? "…" : st.on === 0 ? "Off" : `${st.on}/${st.total} on`}</span>
                 </div>
-              </button>
+              </Button>
+              </div>
             );
           })}
         </nav>
