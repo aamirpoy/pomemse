@@ -53,7 +53,7 @@ describe("timesheet rules", () => {
     try { await expect(getPosition(50)).rejects.toThrow("fresh location"); } finally { vi.unstubAllGlobals(); }
   });
   it.each([NaN, undefined, Date.now() + 60000])("rejects missing, invalid or future capture times: %s", async (timestamp) => {
-    stubWatch([() => fix(10, timestamp as number)]);
+    stubWatch([() => ({ ...fix(10), timestamp: timestamp as number })]);
     try { await expect(getPosition(50)).rejects.toThrow("fresh location"); } finally { vi.unstubAllGlobals(); }
   });
 });
