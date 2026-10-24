@@ -27,4 +27,9 @@ describe("named update access", () => {
   it("undo in change log is admin-only", () => {
     expect(FEATURE_VERSIONS.find((v) => v.key === "change_undo")?.audience).toBe("admin");
   });
+  it("network monitoring does not enable registration approval", () => {
+    const rollouts = [{ feature_key: "device_security", enabled_all: true }];
+    expect(hasVersionAccess("device_security", "worker", [], rollouts)).toBe(true);
+    expect(hasVersionAccess("device_approval", "worker", [], rollouts)).toBe(false);
+  });
 });

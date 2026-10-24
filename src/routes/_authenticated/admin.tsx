@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TestingVersions } from "@/components/admin/TestingVersions";
 import { Devices } from "@/components/admin/Devices";
 import { DataCleanup } from "@/components/admin/DataCleanup";
+import { noteForRecord } from "@/lib/admin-notes";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -194,6 +195,15 @@ function Timesheets() {
     },
   });
   const ids = (rows.data ?? []).map((r) => r.id);
+  const privateNotes = useQuery({
+    queryKey: ["attendance-admin-notes", ids.join(",")],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("attendance_admin_notes").select("attendance_id,note,author_name,updated_at").in("attendance_id", ids);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const outs = useQuery({
     queryKey: ["outings", ids.join(",")],
     enabled: ids.length > 0,
@@ -208,13 +218,13 @@ function Timesheets() {
     totals.set(id, totalMs((rows.data ?? []).filter((r) => r.user_id === id), withBreak)));
 
   function exportCsv() {
-    const lines = [["Employee", "Employee ID", "Date", "Check in", "Check out", "Hours", "In distance (m)", "Out distance (m)", "Check-in note", "Check-out note", "Out of office (hours)", "Out of office details"]];
+    const lines = [["Employee", "Employee ID", "Date", "Check in", "Check out", "Hours", "In distance (m)", "Out distance (m)", "Check-in note", "Check-out note", "Admin note", "Out of office (hours)", "Out of office details"]];
     (rows.data ?? []).forEach((r) => {
       const p = profiles.data?.find((x) => x.id === r.user_id);
       lines.push([p?.full_name ?? "", p?.employee_code ?? "", new Date(r.check_in_at).toLocaleDateString(),
         fmtTime(r.check_in_at), r.check_out_at ? fmtTime(r.check_out_at) : "",
         (workedMs(r) / 3600000).toFixed(2), String(r.check_in_distance_m ?? ""), String(r.check_out_distance_m ?? ""),
-        r.check_in_note ?? "", r.check_out_note ?? "", (outMs(r.id) / 3600000).toFixed(2),
+        r.check_in_note ?? "", r.check_out_note ?? "", noteForRecord(privateNotes.data ?? [], r.id)?.note ?? "", (outMs(r.id) / 3600000).toFixed(2),
         (outs.data ?? []).filter((o) => o.attendance_id === r.id).map((o) => `${fmtTime(o.out_at)}-${o.back_at ? fmtTime(o.back_at) : "open"} ${o.reason ?? ""}`).join("; ")]);
     });
     const safe = (c: string) => (/^[=+\-@\t\r]/.test(c) ? `'${c}` : c);
@@ -244,7 +254,7 @@ function Timesheets() {
           ))}
         </div>
         <RecordDialog profiles={profiles.data ?? []} trigger={<Button className="ml-auto"><Plus /> Add record</Button>} />
-        <Button variant="outline" onClick={exportCsv}><Download /> Export CSV</Button>
+        <Button variant="outline" disabled={privateNotes.isFetching || privateNotes.isError} onClick={exportCsv}><Download /> Export CSV</Button>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[...totals.entries()].map(([id, ms]) => (
@@ -254,6 +264,7 @@ function Timesheets() {
           </div>
         ))}
       </div>
+      {privateNotes.isError && <div role="alert" className="mt-4 flex items-center gap-3 text-destructive">Could not load admin notes.<Button variant="outline" onClick={() => privateNotes.refetch()}>Retry</Button></div>}
       <div className={card}>
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
@@ -270,7 +281,8 @@ function Timesheets() {
                 <td className="max-w-xs text-xs">
                   {r.check_in_note && <div><span className="font-semibold">In:</span> {r.check_in_note}</div>}
                   {r.check_out_note && <div><span className="font-semibold">Out:</span> {r.check_out_note}</div>}
-                  {!r.check_in_note && !r.check_out_note && <span className="text-muted-foreground">—</span>}
+                  {noteForRecord(privateNotes.data ?? [], r.id) && <div className="mt-1"><span className="font-semibold">Admin:</span> {noteForRecord(privateNotes.data ?? [], r.id)?.note}<div className="text-muted-foreground">{noteForRecord(privateNotes.data ?? [], r.id)?.author_name}</div></div>}
+                  {!r.check_in_note && !r.check_out_note && !noteForRecord(privateNotes.data ?? [], r.id) && <span className="text-muted-foreground">—</span>}
                 </td>
                 <td className="max-w-xs text-xs">
                   {(outs.data ?? []).filter((o) => o.attendance_id === r.id).map((o) => (
@@ -280,7 +292,7 @@ function Timesheets() {
                 </td>
                 <td className="text-right font-mono">{fmtDuration(workedMs(r))}</td>
                 <td className="pr-2 text-right">
-                  <RecordDialog rec={r} profiles={profiles.data ?? []} trigger={<Button variant="ghost" size="icon" aria-label="Edit record"><Pencil /></Button>} />
+                  <RecordDialog rec={{ ...r, admin_note: noteForRecord(privateNotes.data ?? [], r.id)?.note ?? null }} profiles={profiles.data ?? []} trigger={<Button disabled={privateNotes.isFetching || privateNotes.isError} variant="ghost" size="icon" aria-label="Edit record"><Pencil /></Button>} />
                 </td>
               </tr>
             ))}

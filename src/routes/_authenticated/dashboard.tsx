@@ -376,13 +376,6 @@ function DashboardBody() {
                     {rows.slice().reverse().map((r) => `${fmtTime(r.check_in_at)} – ${r.check_out_at ? fmtTime(r.check_out_at) : t("now")}`).join(", ")}
                   </span>
                   <span className="font-mono">{fmtDuration(employeeTotalMs(rows, now))}</span>
-                  {versions.data?.includes("admin_notes") && rows.filter((r) => r.admin_note).map((r) => (
-                    <div key={r.id} className="w-full rounded-md bg-secondary px-3 py-2 text-sm">
-                      <span className="font-semibold">{t("Note from")} {r.admin_note_by}</span>
-                      <span className="text-muted-foreground"> · {r.admin_note_at ? fmtDate(r.admin_note_at) : ""}</span>
-                      <div>{r.admin_note}</div>
-                    </div>
-                  ))}
                 </li>
               ))}
             </ul>
