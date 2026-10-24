@@ -34,28 +34,47 @@ export const fmtDate = (iso: string) =>
 /** A GPS fix older than this is treated as stale and re-read. */
 export const LOCATION_FRESH_MS = 15000;
 
-function readPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error("Location is not supported on this device"));
-    navigator.geolocation.getCurrentPosition(resolve, (e) => reject(new Error(e.message)), {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0,
-    });
-  });
-}
+/** Accuracy (m) good enough to stop waiting early. */
+export const GOOD_ACCURACY_M = 50;
+/** Largest accuracy the server accepts; low-accuracy fixes are flagged for the admin. */
+export const MAX_ACCURACY_M = 500;
 
 const isStale = (p: GeolocationPosition, requestedAt: number) =>
   !Number.isFinite(p.timestamp) || p.timestamp < requestedAt - 1000 ||
   p.timestamp > Date.now() + 1000 || Date.now() - p.timestamp > LOCATION_FRESH_MS;
 
-/** Fresh, high-accuracy GPS read. Retries once if the phone hands back a cached fix; rejects if still stale. */
-export async function getPosition(): Promise<GeolocationPosition> {
+/**
+ * Fresh GPS read taken after the tap. Listens for up to `waitMs`, keeps the most accurate
+ * fresh fix and stops early once accuracy is good. Indoor phones often improve within seconds.
+ */
+export function getPosition(waitMs = 10000): Promise<GeolocationPosition> {
   const requestedAt = Date.now();
-  let pos = await readPosition();
-  if (isStale(pos, requestedAt)) pos = await readPosition();
-  if (isStale(pos, requestedAt)) throw new Error("Could not get a fresh location. Please check your GPS and try again.");
-  return pos;
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error("Location is not supported on this device"));
+    let best: GeolocationPosition | undefined;
+    let done = false;
+    let id: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (err?: Error) => {
+      if (done) return;
+      done = true;
+      if (id !== undefined) navigator.geolocation.clearWatch(id);
+      if (timer) clearTimeout(timer);
+      if (best && !isStale(best, requestedAt)) resolve(best);
+      else reject(err ?? new Error("Could not get a fresh location. Please check your GPS and try again."));
+    };
+    id = navigator.geolocation.watchPosition(
+      (p) => {
+        if (isStale(p, requestedAt)) return;
+        if (!best || p.coords.accuracy < best.coords.accuracy) best = p;
+        if (best.coords.accuracy <= GOOD_ACCURACY_M) finish();
+      },
+      (e) => { if (e.code === e.PERMISSION_DENIED || !best) finish(new Error(e.message)); },
+      { enableHighAccuracy: true, timeout: waitMs, maximumAge: 0 },
+    );
+    if (done) navigator.geolocation.clearWatch(id);
+    else timer = setTimeout(() => finish(), waitMs);
+  });
 }
 
 export function distanceM(lat1: number, lng1: number, lat2: number, lng2: number) {

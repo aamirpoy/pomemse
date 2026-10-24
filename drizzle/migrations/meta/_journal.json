@@ -134,6 +134,13 @@
       "when": 1792846340792,
       "tag": "0018_private_admin_timesheet_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792849025570,
+      "tag": "0019_relax_weak_gps_accuracy",
+      "breakpoints": true
     }
   ]
 }
