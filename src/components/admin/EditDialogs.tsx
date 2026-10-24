@@ -40,6 +40,10 @@ export function RecordDialog({ rec, profiles, trigger }: { rec?: Rec; profiles: 
       ? await supabase.from("attendance").update(payload).eq("id", rec.id)
       : await supabase.from("attendance").insert(payload);
     if (error) { toast.error(error.message); return; }
+    if (rec?.id && !f.note.trim()) {
+      const { error: noteError } = await supabase.rpc("clear_private_attendance_note", { _attendance: rec.id });
+      if (noteError) { toast.error("Time saved, but the admin note could not be cleared. Please retry."); return; }
+    }
     toast.success(rec?.id ? "Record updated" : "Record added");
     qc.invalidateQueries();
     setOpen(false);
@@ -69,7 +73,7 @@ export function RecordDialog({ rec, profiles, trigger }: { rec?: Rec; profiles: 
           <div className="space-y-1"><Label>Check in</Label><Input type="datetime-local" required value={f.inAt} onChange={(e) => setF({ ...f, inAt: e.target.value })} /></div>
           <div className="space-y-1"><Label>Check out (leave empty if still in)</Label><Input type="datetime-local" value={f.outAt} onChange={(e) => setF({ ...f, outAt: e.target.value })} /></div>
           <div className="space-y-1">
-            <Label>Note for the employee (optional)</Label>
+            <Label>Admin note (optional · admins only)</Label>
             <textarea maxLength={500} rows={2} className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               placeholder="e.g. Forgot to check out, corrected to 6 pm" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
           </div>
