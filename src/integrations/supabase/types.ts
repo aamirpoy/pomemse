@@ -540,6 +540,10 @@ export type Database = {
         Args: { _device: string; _ua?: string }
         Returns: Json
       }
+      report_location_failure: {
+        Args: { _action: string; _device?: string; _ua?: string }
+        Returns: undefined
+      }
       set_version_everyone: {
         Args: { _enabled: boolean; _feature: string }
         Returns: undefined
