@@ -86,7 +86,7 @@ export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; ad
             const active = x.key === selected;
             return (
               <div key={x.key}>
-              {(x.version === "V1" || x.version === "V3" || x.version === "V4" || x.version === "V6" || x.version === "V7") && <h3 className="px-1 pb-2 pt-3 text-xs font-semibold uppercase text-muted-foreground">{x.version === "V1" ? "Location & monitoring" : x.version === "V3" ? "Employee notes" : x.version === "V4" ? "Identity protection · optional" : x.version === "V6" ? "Language" : "Admin recovery"}</h3>}
+              {(x.version === "V1" || x.version === "V4" || x.version === "V6" || x.version === "V7") && <h3 className="px-1 pb-2 pt-3 text-xs font-semibold uppercase text-muted-foreground">{x.version === "V1" ? "Location & monitoring" : x.version === "V4" ? "Identity protection · optional" : x.version === "V6" ? "Language" : "Admin recovery"}</h3>}
               <Button key={x.key} type="button" variant="outline" onClick={() => { setSelected(x.key); setSearch(""); }}
                 className={`h-auto w-full flex-col items-stretch whitespace-normal rounded-lg border p-3 text-left transition-colors ${active ? "border-primary bg-primary/5" : "bg-card hover:bg-secondary"}`}>
                 <div className="flex items-center gap-2">
