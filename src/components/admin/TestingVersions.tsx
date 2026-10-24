@@ -76,6 +76,7 @@ export function TestingVersions({ profiles, adminIds }: { profiles: Person[]; ad
       <section className="border-y py-4 text-sm">
         <h3 className="font-semibold">Attendance reliability · active for everyone</h3>
         <p className="mt-1 text-muted-foreground">Fresh location for each action, location checks on the server, clear saved / blocked results, and silent security records. Device registration is not required unless V4 is enabled.</p>
+        <p className="mt-2 text-muted-foreground">Admin timesheet notes are private to admins and available without a testing switch. V1 monitors networks; V4 separately requires device registration.</p>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">

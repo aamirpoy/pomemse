@@ -68,6 +68,45 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_admin_notes: {
+        Row: {
+          attendance_id: string
+          author_name: string
+          note: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attendance_id: string
+          author_name?: string
+          note: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attendance_id?: string
+          author_name?: string
+          note?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_admin_notes_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: true
+            referencedRelation: "attendance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_admin_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -477,6 +516,10 @@ export type Database = {
         Returns: Json
       }
       admin_revert_change: { Args: { _log: string }; Returns: Json }
+      clear_private_attendance_note: {
+        Args: { _attendance: string }
+        Returns: undefined
+      }
       clock_action: {
         Args: {
           _acc?: number
