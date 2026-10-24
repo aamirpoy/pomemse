@@ -186,6 +186,7 @@ function DashboardBody() {
     actionLock.current = true;
     setBusy(true);
     setFeedback(undefined);
+    toast.dismiss();
     try {
       const expected = currentOut ? "back" : "out";
       const pos = await getPosition();
@@ -216,14 +217,9 @@ function DashboardBody() {
     setNoteOpen(false);
     setBusy(true);
     setFeedback(undefined);
+    toast.dismiss();
     try {
       const expected = open ? "check_out" : "check_in";
-      if (approvalOn) {
-        const latest = await myDevice.refetch();
-        if (latest.error) throw latest.error;
-        if (!latest.data) { await registerDevice(); return; }
-        if (latest.data.status !== "approved") throw new Error(latest.data.status === "rejected" ? "This device is blocked. Please contact your admin." : "This device is waiting for admin approval.");
-      }
       if (bioOn) await verifyBio();
       const pos = await getPosition();
       const { latitude, longitude, accuracy } = pos.coords;
