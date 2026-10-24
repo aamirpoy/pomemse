@@ -18,6 +18,11 @@ const FLAG_LABEL: Record<string, string> = {
   no_device_id: "Device unknown",
   device_pending: "Waiting for device approval",
   device_blocked: "Device blocked or assigned to another account",
+  stale_location: "Location missing or too old — refresh needed",
+  invalid_location: "Location not provided",
+  biometric_required: "Face / fingerprint not verified",
+  not_checked_in: "Not checked in",
+  missing_reason: "Work outing reason missing",
 };
 const ACTION_LABEL: Record<string, string> = {
   check_in: "Check in", check_out: "Check out", meeting_out: "Going out", meeting_back: "Back in office",
@@ -72,6 +77,7 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
         </select>
         <span className="text-muted-foreground">Employees are never told about these alerts.</span>
       </div>
+      <p className="mt-3 text-sm text-muted-foreground">Shared office Wi-Fi is allowed, not proof of cheating. Matching accounts are recorded within 10 minutes. VPN use cannot be reliably identified from an IP address; fresh GPS and optional registered devices / passkeys are stronger checks.</p>
       {rows.isError && <div className="mt-4 flex items-center gap-3 text-destructive">Could not load security events.<Button variant="outline" onClick={() => rows.refetch()}>Retry</Button></div>}
       <div className="mt-4 overflow-x-auto rounded-xl border bg-card shadow-soft">
         <table className="w-full text-sm">
@@ -83,7 +89,7 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
               <tr key={r.id} className="border-b align-top last:border-0">
                 <td className="p-3 whitespace-nowrap">{fmtDate(r.created_at)}<div className="text-xs text-muted-foreground">{fmtTime(r.created_at)}</div></td>
                 <td className="py-3 font-medium">{names[r.user_id] ?? "—"}</td>
-                <td className="py-3">{ACTION_LABEL[r.action] ?? r.action}{!r.success && <div className="text-xs text-destructive">blocked</div>}</td>
+                <td className="py-3">{ACTION_LABEL[r.action] ?? r.action}<div className={`text-xs ${r.success ? "text-success" : "text-destructive"}`}>{r.success ? "Saved" : "Blocked — not saved"}</div></td>
                 <td className="max-w-[220px] py-3 text-xs">
                   <div className="font-mono">{r.device_id?.slice(0, 8) ?? "—"}</div>
                   <div className="font-mono">{r.ip ?? "—"}</div>
@@ -99,6 +105,7 @@ export function SecurityAlerts({ names }: { names: Record<string, string> }) {
                     {r.flags.map((f) => <span key={f} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{FLAG_LABEL[f] ?? f}</span>)}
                   </div>
                   {r.admin_note && <div className="mt-1 text-xs italic">Note: {r.admin_note}</div>}
+                  {r.flags.includes("shared_ip") && <div className="mt-2 text-xs">Same network as: {r.shared_ip_users?.length ? r.shared_ip_users.map(id => names[id] ?? "Former employee").join(", ") : "Not recorded on this older event"}</div>}
                 </td>
                 <td className="py-3 pr-3">
                   <div className="flex flex-col gap-1">

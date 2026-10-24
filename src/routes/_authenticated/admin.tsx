@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TestingVersions } from "@/components/admin/TestingVersions";
 import { Devices } from "@/components/admin/Devices";
+import { DataCleanup } from "@/components/admin/DataCleanup";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -54,6 +55,11 @@ function SecurityTab() {
   return <SecurityAlerts names={Object.fromEntries(data.map((p) => [p.id, p.full_name]))} />;
 }
 
+function CleanupTab() {
+  const { data = [] } = useProfiles();
+  return <DataCleanup names={Object.fromEntries(data.map(p => [p.id, p.full_name]))} />;
+}
+
 function AdminPage() {
   const { data: me, isLoading } = useMe();
   const alertCount = useNewAlertCount();
@@ -81,6 +87,7 @@ function AdminPage() {
             <TabsTrigger value="devices">Devices</TabsTrigger>
             <TabsTrigger value="office">Office</TabsTrigger>
             <TabsTrigger value="history">Change log</TabsTrigger>
+            <TabsTrigger value="cleanup">Data cleanup</TabsTrigger>
             <TabsTrigger value="security">
               Security {!!alertCount.data && <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{alertCount.data}</span>}
             </TabsTrigger>
@@ -94,6 +101,7 @@ function AdminPage() {
           <TabsContent value="office"><Office /></TabsContent>
           <TabsContent value="history"><HistoryTab /></TabsContent>
           <TabsContent value="security"><SecurityTab /></TabsContent>
+          <TabsContent value="cleanup"><CleanupTab /></TabsContent>
         </Tabs>
       </main>
     </div>
