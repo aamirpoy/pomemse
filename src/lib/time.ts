@@ -53,15 +53,17 @@ export function getPosition(waitMs = 10000): Promise<GeolocationPosition> {
     if (!navigator.geolocation) return reject(new Error("Location is not supported on this device"));
     let best: GeolocationPosition | undefined;
     let done = false;
+    let id: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const finish = (err?: Error) => {
       if (done) return;
       done = true;
-      navigator.geolocation.clearWatch(id);
-      clearTimeout(timer);
+      if (id !== undefined) navigator.geolocation.clearWatch(id);
+      if (timer) clearTimeout(timer);
       if (best && !isStale(best, requestedAt)) resolve(best);
       else reject(err ?? new Error("Could not get a fresh location. Please check your GPS and try again."));
     };
-    const id = navigator.geolocation.watchPosition(
+    id = navigator.geolocation.watchPosition(
       (p) => {
         if (isStale(p, requestedAt)) return;
         if (!best || p.coords.accuracy < best.coords.accuracy) best = p;
@@ -70,7 +72,8 @@ export function getPosition(waitMs = 10000): Promise<GeolocationPosition> {
       (e) => { if (e.code === e.PERMISSION_DENIED || !best) finish(new Error(e.message)); },
       { enableHighAccuracy: true, timeout: waitMs, maximumAge: 0 },
     );
-    const timer = setTimeout(() => finish(), waitMs);
+    if (done) navigator.geolocation.clearWatch(id);
+    else timer = setTimeout(() => finish(), waitMs);
   });
 }
 
