@@ -45,14 +45,16 @@ function readPosition(): Promise<GeolocationPosition> {
   });
 }
 
-const isStale = (p: GeolocationPosition) =>
-  typeof p.timestamp === "number" && Date.now() - p.timestamp > LOCATION_FRESH_MS;
+const isStale = (p: GeolocationPosition, requestedAt: number) =>
+  !Number.isFinite(p.timestamp) || p.timestamp < requestedAt - 1000 ||
+  p.timestamp > Date.now() + 1000 || Date.now() - p.timestamp > LOCATION_FRESH_MS;
 
 /** Fresh, high-accuracy GPS read. Retries once if the phone hands back a cached fix; rejects if still stale. */
 export async function getPosition(): Promise<GeolocationPosition> {
+  const requestedAt = Date.now();
   let pos = await readPosition();
-  if (isStale(pos)) pos = await readPosition();
-  if (isStale(pos)) throw new Error("Could not get a fresh location. Please check your GPS and try again.");
+  if (isStale(pos, requestedAt)) pos = await readPosition();
+  if (isStale(pos, requestedAt)) throw new Error("Could not get a fresh location. Please check your GPS and try again.");
   return pos;
 }
 

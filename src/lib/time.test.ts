@@ -48,4 +48,13 @@ describe("timesheet rules", () => {
     expect(distanceM(24.5333726, 54.5299175, 24.533389, 54.529917)).toBeLessThan(1750);
     expect(distanceM(25, 55, 24.533389, 54.529917)).toBeGreaterThan(1750);
   });
+  it("rejects a recently cached fix from before this click", async () => {
+    const acquire = vi.fn((success: PositionCallback) => success({ coords: { latitude: 24.53, longitude: 54.52, accuracy: 10 }, timestamp: Date.now() - 5000 } as GeolocationPosition));
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition: acquire } });
+    try { await expect(getPosition()).rejects.toThrow("fresh location"); } finally { vi.unstubAllGlobals(); }
+  });
+  it.each([NaN, undefined, Date.now() + 60000])("rejects missing, invalid or future capture times: %s", async (timestamp) => {
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition: (success: PositionCallback) => success({ coords: { latitude: 24.53, longitude: 54.52, accuracy: 10 }, timestamp } as GeolocationPosition) } });
+    try { await expect(getPosition()).rejects.toThrow("fresh location"); } finally { vi.unstubAllGlobals(); }
+  });
 });
